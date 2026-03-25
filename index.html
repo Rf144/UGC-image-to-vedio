@@ -6,347 +6,245 @@
   <title>圖生影片工具</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', sans-serif; background: #0f0f13; color: #e0e0e0; min-height: 100vh; padding: 24px 16px; }
+    h1 { text-align: center; font-size: 1.5rem; margin-bottom: 24px; color: #fff; letter-spacing: 2px; }
 
-    body {
-      font-family: 'Segoe UI', sans-serif;
-      background: #0f0f13;
-      color: #e0e0e0;
-      min-height: 100vh;
-      padding: 32px 16px;
-    }
+    .layout { max-width: 1100px; margin: 0 auto; display: grid; grid-template-columns: 400px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
 
-    h1 {
-      text-align: center;
-      font-size: 1.6rem;
-      margin-bottom: 28px;
-      color: #fff;
-      letter-spacing: 2px;
-    }
+    .card { background: #1a1a24; border: 1px solid #2e2e40; border-radius: 12px; padding: 18px 20px; }
+    .card h2 { font-size: 0.78rem; text-transform: uppercase; letter-spacing: 1.5px; color: #888; margin-bottom: 12px; }
 
-    .container {
-      max-width: 780px;
-      margin: 0 auto;
-      display: flex;
-      flex-direction: column;
-      gap: 20px;
-    }
-
-    .card {
-      background: #1a1a24;
-      border: 1px solid #2e2e40;
-      border-radius: 12px;
-      padding: 20px 24px;
-    }
-
-    .card h2 {
-      font-size: 0.85rem;
-      text-transform: uppercase;
-      letter-spacing: 1.5px;
-      color: #888;
-      margin-bottom: 14px;
-    }
-
-    label {
-      display: block;
-      font-size: 0.82rem;
-      color: #aaa;
-      margin-bottom: 5px;
-      margin-top: 12px;
-    }
+    label { display: block; font-size: 0.8rem; color: #aaa; margin-bottom: 4px; margin-top: 10px; }
     label:first-of-type { margin-top: 0; }
-
     input[type="text"], input[type="password"], select, textarea {
-      width: 100%;
-      background: #111118;
-      border: 1px solid #2e2e40;
-      border-radius: 8px;
-      color: #e0e0e0;
-      font-size: 0.88rem;
-      padding: 9px 12px;
-      outline: none;
-      transition: border-color 0.2s;
-      font-family: inherit;
+      width: 100%; background: #111118; border: 1px solid #2e2e40; border-radius: 8px;
+      color: #e0e0e0; font-size: 0.86rem; padding: 8px 11px; outline: none;
+      transition: border-color 0.2s; font-family: inherit;
     }
     input:focus, select:focus, textarea:focus { border-color: #5b5bef; }
     textarea { resize: vertical; line-height: 1.5; }
 
-    /* Model price tag */
-    .model-price {
-      display: inline-block;
-      font-size: 0.75rem;
-      color: #facc15;
-      background: #2a2a10;
-      border: 1px solid #5a5010;
-      border-radius: 4px;
-      padding: 2px 7px;
-      margin-left: 8px;
-      vertical-align: middle;
-    }
-
-    /* Drop zone */
     #drop-zone {
-      border: 2px dashed #2e2e40;
-      border-radius: 12px;
-      padding: 40px 20px;
-      text-align: center;
-      cursor: pointer;
-      transition: border-color 0.2s, background 0.2s;
-      position: relative;
+      border: 2px dashed #2e2e40; border-radius: 10px; padding: 28px 16px;
+      text-align: center; cursor: pointer; transition: border-color 0.2s, background 0.2s; position: relative;
     }
     #drop-zone.drag-over { border-color: #5b5bef; background: #1a1a30; }
-    #drop-zone .icon { font-size: 2.5rem; margin-bottom: 10px; }
-    #drop-zone p { color: #888; font-size: 0.9rem; }
-    #drop-zone input[type="file"] {
-      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
-    }
+    #drop-zone .icon { font-size: 2rem; margin-bottom: 8px; }
+    #drop-zone p { color: #888; font-size: 0.85rem; }
+    #drop-zone input[type="file"] { position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%; }
 
-    #preview-wrap { display: none; margin-top: 14px; text-align: center; }
-    #preview-wrap img {
-      max-height: 260px; max-width: 100%;
-      border-radius: 8px; border: 1px solid #2e2e40;
-    }
-    #preview-wrap button {
-      display: block; margin: 8px auto 0;
-      background: none; border: none; color: #888;
-      font-size: 0.8rem; cursor: pointer; text-decoration: underline;
-    }
+    #preview-wrap { display: none; margin-top: 12px; text-align: center; }
+    #preview-wrap img { max-height: 180px; max-width: 100%; border-radius: 8px; border: 1px solid #2e2e40; }
+    #preview-wrap button { display: block; margin: 6px auto 0; background: none; border: none; color: #888; font-size: 0.78rem; cursor: pointer; text-decoration: underline; }
 
     #prompt-result {
-      min-height: 80px;
-      background: #111118;
-      border: 1px solid #2e2e40;
-      border-radius: 8px;
-      padding: 10px 12px;
-      font-size: 0.88rem;
-      line-height: 1.6;
-      white-space: pre-wrap;
-      color: #ccc;
+      min-height: 70px; background: #111118; border: 1px solid #2e2e40; border-radius: 8px;
+      padding: 9px 11px; font-size: 0.85rem; line-height: 1.6; white-space: pre-wrap; color: #ccc;
     }
     #prompt-result.empty { color: #444; font-style: italic; }
 
-    .btn {
-      width: 100%; padding: 13px; border: none;
-      border-radius: 10px; font-size: 1rem; font-weight: 600;
-      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
-      letter-spacing: 0.5px;
-    }
+    .btn { width: 100%; padding: 11px; border: none; border-radius: 10px; font-size: 0.95rem; font-weight: 600; cursor: pointer; transition: opacity 0.15s, transform 0.1s; letter-spacing: 0.5px; }
     .btn:active { transform: scale(0.98); }
     .btn:disabled { opacity: 0.4; cursor: not-allowed; }
     .btn-analyze { background: linear-gradient(135deg, #5b5bef, #8b5cf6); color: #fff; }
     .btn-generate { background: linear-gradient(135deg, #ef5b5b, #f97316); color: #fff; }
+    .btn-add { background: #1e2a1e; border: 1px solid #2e5e2e; color: #4ade80; font-size: 0.85rem; padding: 8px; border-radius: 8px; width: 100%; cursor: pointer; margin-top: 8px; }
 
-    #status-box {
-      display: none; background: #111118;
-      border: 1px solid #2e2e40; border-radius: 8px;
-      padding: 14px 16px; font-size: 0.85rem; color: #aaa; line-height: 1.6;
-    }
-    #status-box.show { display: block; }
-    .status-line { margin-bottom: 4px; }
-    .status-ok { color: #4ade80; }
-    .status-err { color: #f87171; }
-    .status-wait { color: #facc15; }
-
-    .spinner {
-      display: inline-block; width: 14px; height: 14px;
-      border: 2px solid #444; border-top-color: #5b5bef;
-      border-radius: 50%; animation: spin 0.7s linear infinite;
-      vertical-align: middle; margin-right: 6px;
-    }
+    .spinner { display: inline-block; width: 13px; height: 13px; border: 2px solid #444; border-top-color: #5b5bef; border-radius: 50%; animation: spin 0.7s linear infinite; vertical-align: middle; margin-right: 5px; }
     @keyframes spin { to { transform: rotate(360deg); } }
 
-    .row { display: flex; gap: 12px; }
+    .row { display: flex; gap: 10px; }
     .row > * { flex: 1; }
 
-    /* Model params sections */
-    .model-params { display: none; }
-    .model-params.active { display: block; }
+    /* ── Task List ── */
+    .right-panel { display: flex; flex-direction: column; gap: 12px; }
+
+    .task-card {
+      background: #1a1a24; border: 1px solid #2e2e40; border-radius: 12px;
+      padding: 14px 16px; display: grid;
+      grid-template-columns: 80px 1fr auto;
+      gap: 12px; align-items: start;
+    }
+    .task-thumb { width: 80px; height: 80px; object-fit: cover; border-radius: 6px; border: 1px solid #2e2e40; }
+    .task-thumb-placeholder { width: 80px; height: 80px; background: #111118; border-radius: 6px; border: 1px solid #2e2e40; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; }
+
+    .task-info { min-width: 0; }
+    .task-model { font-size: 0.72rem; color: #888; margin-bottom: 4px; }
+    .task-prompt { font-size: 0.8rem; color: #bbb; line-height: 1.4; max-height: 60px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; }
+    .task-id { font-size: 0.7rem; color: #555; margin-top: 4px; font-family: monospace; }
+
+    .task-actions { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 90px; }
+    .badge { font-size: 0.72rem; padding: 3px 8px; border-radius: 20px; font-weight: 600; white-space: nowrap; }
+    .badge-wait { background: #2a2a10; color: #facc15; }
+    .badge-running { background: #102a2a; color: #38bdf8; }
+    .badge-success { background: #0d2a15; color: #4ade80; }
+    .badge-fail { background: #2a0d0d; color: #f87171; }
+
+    .progress-bar { width: 90px; height: 4px; background: #2e2e40; border-radius: 2px; overflow: hidden; }
+    .progress-fill { height: 100%; background: #5b5bef; transition: width 0.3s; }
+
+    .btn-dl { background: linear-gradient(135deg, #5b5bef, #8b5cf6); color: #fff; border: none; border-radius: 8px; padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .btn-dl:hover { opacity: 0.85; }
+
+    .task-status-msg { font-size: 0.72rem; color: #888; margin-top: 2px; }
+    .task-error { font-size: 0.72rem; color: #f87171; margin-top: 2px; max-width: 200px; }
+
+    .empty-tasks { text-align: center; padding: 48px 16px; color: #444; font-size: 0.9rem; border: 2px dashed #2e2e40; border-radius: 12px; }
+
+    .panel-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px; }
+    .panel-title { font-size: 0.85rem; font-weight: 600; color: #888; text-transform: uppercase; letter-spacing: 1.5px; }
+    .btn-clear-done { background: none; border: none; color: #555; font-size: 0.75rem; cursor: pointer; text-decoration: underline; }
+    .btn-clear-done:hover { color: #888; }
+
+    .note { font-size: 0.72rem; color: #555; margin-top: 6px; }
   </style>
 </head>
 <body>
   <h1>圖生影片工具</h1>
 
-  <div class="container">
+  <div class="layout">
+    <!-- LEFT: Controls -->
+    <div style="display:flex;flex-direction:column;gap:14px;">
 
-    <!-- API Keys -->
-    <div class="card">
-      <h2>API 設定</h2>
-      <div class="row">
-        <div>
-          <label>OpenRouter API Key</label>
-          <input type="password" id="or-key" placeholder="sk-or-v1-..." />
+      <!-- API Keys -->
+      <div class="card">
+        <h2>API 設定</h2>
+        <label>OpenRouter API Key</label>
+        <input type="password" id="or-key" placeholder="sk-or-v1-..." />
+        <label>kie.ai API Key</label>
+        <input type="password" id="kie-key" placeholder="kie.ai API Key" />
+        <p class="note">Key 自動儲存於瀏覽器，不會上傳至伺服器</p>
+      </div>
+
+      <!-- LLM -->
+      <div class="card">
+        <h2>LLM 設定</h2>
+        <label>模型</label>
+        <select id="model-select">
+          <option value="google/gemini-2.0-flash-001" selected>Gemini 2.0 Flash</option>
+          <option value="google/gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro Preview</option>
+          <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (Free)</option>
+          <option value="openai/gpt-4o">GPT-4o</option>
+          <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+          <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+          <option value="meta-llama/llama-3.2-90b-vision-instruct">Llama 3.2 90B Vision</option>
+        </select>
+        <label>System Prompt</label>
+        <textarea id="system-prompt" rows="3">分析這張電商產品圖，產生一段適合短影片的腳本描述</textarea>
+      </div>
+
+      <!-- Image Upload -->
+      <div class="card">
+        <h2>上傳圖片</h2>
+        <div id="drop-zone">
+          <input type="file" id="file-input" accept="image/*" />
+          <div class="icon">🖼️</div>
+          <p>拖曳或點擊上傳</p>
+          <p style="font-size:0.72rem; margin-top:4px; color:#555;">JPG / PNG / WEBP，最大 10MB</p>
         </div>
-        <div>
-          <label>kie.ai API Key</label>
-          <input type="password" id="kie-key" placeholder="kie.ai API Key" />
+        <div id="preview-wrap">
+          <img id="preview-img" src="" alt="預覽" />
+          <button onclick="clearImage()">✕ 移除</button>
         </div>
       </div>
-      <p style="font-size:0.75rem; color:#555; margin-top:8px;">Key 自動儲存於瀏覽器，不會上傳至伺服器</p>
-    </div>
 
-    <!-- LLM Settings -->
-    <div class="card">
-      <h2>LLM 設定（圖片分析）</h2>
-      <label>選擇模型</label>
-      <select id="model-select">
-        <option value="google/gemini-2.0-flash-001" selected>Gemini 2.0 Flash</option>
-        <option value="google/gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro Preview</option>
-        <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (Free)</option>
-        <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
-        <option value="openai/gpt-4o">GPT-4o</option>
-        <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
-        <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
-        <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
-        <option value="meta-llama/llama-3.2-90b-vision-instruct">Llama 3.2 90B Vision</option>
-      </select>
-      <label>System Prompt</label>
-      <textarea id="system-prompt" rows="4">分析這張電商產品圖，產生一段適合短影片的腳本描述</textarea>
-    </div>
+      <!-- Analyze -->
+      <button class="btn btn-analyze" id="btn-analyze" onclick="analyzeImage()" disabled>
+        分析圖片，產生 Prompt
+      </button>
 
-    <!-- Image Upload -->
-    <div class="card">
-      <h2>上傳圖片</h2>
-      <div id="drop-zone">
-        <input type="file" id="file-input" accept="image/*" />
-        <div class="icon">🖼️</div>
-        <p>拖曳圖片到這裡，或點擊選擇檔案</p>
-        <p style="font-size:0.75rem; margin-top:6px; color:#555;">支援 JPG、PNG、WEBP（最大 10MB）</p>
+      <!-- Prompt -->
+      <div class="card">
+        <h2>產生的 Prompt（可編輯）</h2>
+        <div id="prompt-result" class="empty" contenteditable="true">尚未產生 Prompt</div>
       </div>
-      <div id="preview-wrap">
-        <img id="preview-img" src="" alt="預覽" />
-        <button onclick="clearImage()">✕ 移除圖片</button>
-      </div>
-    </div>
 
-    <!-- Analyze -->
-    <button class="btn btn-analyze" id="btn-analyze" onclick="analyzeImage()" disabled>
-      分析圖片，產生 Prompt
-    </button>
+      <!-- Video Model -->
+      <div class="card">
+        <h2>影片生成設定</h2>
+        <label>影片模型</label>
+        <select id="video-model" onchange="onModelChange()">
+          <optgroup label="─ Sora 2">
+            <option value="sora-2-image-to-video-stable" selected>Sora 2 Stable  ·  ~$0.175 / 10秒</option>
+            <option value="sora-2-image-to-video">Sora 2 標準  ·  ~$1 / 10秒</option>
+            <option value="sora-2-pro-image-to-video-720">Sora 2 Pro 720p  ·  ~$3 / 10秒</option>
+            <option value="sora-2-pro-image-to-video-1080">Sora 2 Pro 1080p  ·  ~$5 / 10秒</option>
+          </optgroup>
+          <optgroup label="─ Google Veo">
+            <option value="veo-3-1-fast">Veo 3.1 Fast  ·  $0.40 / 支</option>
+            <option value="veo-3-1-quality">Veo 3.1 Quality  ·  $2.00 / 支</option>
+          </optgroup>
+          <optgroup label="─ Kling">
+            <option value="kling/v2-1-pro">Kling v2.1 Pro</option>
+          </optgroup>
+          <optgroup label="─ Hailuo">
+            <option value="hailuo/2-3-image-to-video-pro">Hailuo 2.3 Pro</option>
+          </optgroup>
+          <optgroup label="─ Wan">
+            <option value="wan/2-6-image-to-video">Wan 2.6</option>
+          </optgroup>
+        </select>
 
-    <!-- Generated Prompt -->
-    <div class="card">
-      <h2>產生的 Prompt（可編輯）</h2>
-      <div id="prompt-result" class="empty" contenteditable="true">尚未產生 Prompt</div>
-    </div>
-
-    <!-- Video Model Settings -->
-    <div class="card">
-      <h2>影片生成設定（kie.ai）</h2>
-
-      <label>選擇影片模型</label>
-      <select id="video-model" onchange="onModelChange()">
-        <optgroup label="─ Sora 2">
-          <option value="sora-2-image-to-video-stable" data-price="~$0.175/支" selected>Sora 2 Stable  ·  ~$0.175 / 10秒</option>
-          <option value="sora-2-image-to-video" data-price="~$1/支">Sora 2 標準  ·  ~$1 / 10秒</option>
-          <option value="sora-2-pro-image-to-video-720" data-price="~$3/支">Sora 2 Pro 720p  ·  ~$3 / 10秒</option>
-          <option value="sora-2-pro-image-to-video-1080" data-price="~$5/支">Sora 2 Pro 1080p  ·  ~$5 / 10秒</option>
-        </optgroup>
-        <optgroup label="─ Google Veo">
-          <option value="veo-3-1-fast" data-price="$0.40/支">Veo 3.1 Fast  ·  $0.40 / 支</option>
-          <option value="veo-3-1-quality" data-price="$2.00/支">Veo 3.1 Quality  ·  $2.00 / 支</option>
-        </optgroup>
-        <optgroup label="─ Kling">
-          <option value="kling/v2-1-pro" data-price="查官網">Kling v2.1 Pro</option>
-        </optgroup>
-        <optgroup label="─ Hailuo">
-          <option value="hailuo/2-3-image-to-video-pro" data-price="查官網">Hailuo 2.3 Pro</option>
-        </optgroup>
-        <optgroup label="─ Wan">
-          <option value="wan/2-6-image-to-video" data-price="查官網">Wan 2.6</option>
-        </optgroup>
-      </select>
-
-      <!-- Sora params -->
-      <div id="params-sora" class="model-params active">
-        <div class="row">
-          <div>
-            <label>影片長度</label>
-            <select id="sora-frames">
-              <option value="10" selected>10 秒</option>
-              <option value="15">15 秒（Pro 限定）</option>
-            </select>
-          </div>
-          <div>
-            <label>畫面方向</label>
-            <select id="sora-aspect">
-              <option value="landscape" selected>橫向 Landscape</option>
-              <option value="portrait">直向 Portrait</option>
-            </select>
+        <div id="params-sora" class="model-params" style="display:block">
+          <div class="row">
+            <div>
+              <label>影片長度</label>
+              <select id="sora-frames">
+                <option value="10" selected>10 秒</option>
+                <option value="15">15 秒（Pro 限定）</option>
+              </select>
+            </div>
+            <div>
+              <label>畫面方向</label>
+              <select id="sora-aspect">
+                <option value="landscape" selected>橫向</option>
+                <option value="portrait">直向</option>
+              </select>
+            </div>
           </div>
         </div>
-      </div>
-
-      <!-- Kling params -->
-      <div id="params-kling" class="model-params">
-        <div class="row">
-          <div>
-            <label>影片長度</label>
-            <select id="kling-duration">
-              <option value="5" selected>5 秒</option>
-              <option value="10">10 秒</option>
-            </select>
+        <div id="params-kling" class="model-params" style="display:none">
+          <label>影片長度</label>
+          <select id="kling-duration"><option value="5" selected>5 秒</option><option value="10">10 秒</option></select>
+        </div>
+        <div id="params-hailuo" class="model-params" style="display:none">
+          <div class="row">
+            <div><label>長度</label><select id="hailuo-duration"><option value="6" selected>6 秒</option><option value="10">10 秒</option></select></div>
+            <div><label>解析度</label><select id="hailuo-res"><option value="768p" selected>768p</option><option value="1080p">1080p</option></select></div>
+          </div>
+        </div>
+        <div id="params-wan" class="model-params" style="display:none">
+          <div class="row">
+            <div><label>長度</label><select id="wan-duration"><option value="5" selected>5 秒</option><option value="10">10 秒</option><option value="15">15 秒</option></select></div>
+            <div><label>解析度</label><select id="wan-res"><option value="720p" selected>720p</option><option value="1080p">1080p</option></select></div>
           </div>
         </div>
       </div>
 
-      <!-- Hailuo params -->
-      <div id="params-hailuo" class="model-params">
-        <div class="row">
-          <div>
-            <label>影片長度</label>
-            <select id="hailuo-duration">
-              <option value="6" selected>6 秒</option>
-              <option value="10">10 秒</option>
-            </select>
-          </div>
-          <div>
-            <label>解析度</label>
-            <select id="hailuo-res">
-              <option value="768p" selected>768p</option>
-              <option value="1080p">1080p（僅 6 秒）</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      <!-- Wan params -->
-      <div id="params-wan" class="model-params">
-        <div class="row">
-          <div>
-            <label>影片長度</label>
-            <select id="wan-duration">
-              <option value="5" selected>5 秒</option>
-              <option value="10">10 秒</option>
-              <option value="15">15 秒</option>
-            </select>
-          </div>
-          <div>
-            <label>解析度</label>
-            <select id="wan-res">
-              <option value="720p" selected>720p</option>
-              <option value="1080p">1080p</option>
-            </select>
-          </div>
-        </div>
-      </div>
+      <button class="btn btn-generate" id="btn-generate" onclick="submitTask()" disabled>
+        加入佇列，生成影片
+      </button>
 
     </div>
 
-    <!-- Generate Video -->
-    <button class="btn btn-generate" id="btn-generate" onclick="generateVideo()" disabled>
-      送出 kie.ai，生成影片
-    </button>
-
-    <!-- Status -->
-    <div id="status-box"></div>
-
+    <!-- RIGHT: Task List -->
+    <div class="right-panel">
+      <div class="panel-header">
+        <span class="panel-title">影片任務列表</span>
+        <button class="btn-clear-done" onclick="clearDone()">清除已完成</button>
+      </div>
+      <div id="task-list">
+        <div class="empty-tasks" id="empty-hint">尚無任務<br><span style="font-size:0.8rem;color:#333">送出影片後會在這裡顯示</span></div>
+      </div>
+    </div>
   </div>
 
   <script>
-    let imageBase64 = null;
-    let imageMime = 'image/jpeg';
-    let imageFileName = 'image.jpg';
+    let imageBase64 = null, imageMime = 'image/jpeg', imageFileName = 'image.jpg', imageThumb = null;
+    const tasks = [];
 
-    // --- 從 localStorage 讀取已儲存的 Key ---
+    // localStorage keys
     const orKeyEl = document.getElementById('or-key');
     const kieKeyEl = document.getElementById('kie-key');
     if (localStorage.getItem('or-key')) orKeyEl.value = localStorage.getItem('or-key');
@@ -354,37 +252,23 @@
     orKeyEl.addEventListener('input', () => localStorage.setItem('or-key', orKeyEl.value));
     kieKeyEl.addEventListener('input', () => localStorage.setItem('kie-key', kieKeyEl.value));
 
-    // --- Model change handler ---
+    // Model params toggle
     function onModelChange() {
       const val = document.getElementById('video-model').value;
-      document.querySelectorAll('.model-params').forEach(el => el.classList.remove('active'));
-
-      if (val.startsWith('sora-2') || val.startsWith('sora-')) {
-        document.getElementById('params-sora').classList.add('active');
-      } else if (val.startsWith('kling')) {
-        document.getElementById('params-kling').classList.add('active');
-      } else if (val.startsWith('hailuo')) {
-        document.getElementById('params-hailuo').classList.add('active');
-      } else if (val.startsWith('wan')) {
-        document.getElementById('params-wan').classList.add('active');
-      }
+      document.querySelectorAll('.model-params').forEach(el => el.style.display = 'none');
+      if (val.startsWith('sora-') || val.startsWith('sora-2')) document.getElementById('params-sora').style.display = 'block';
+      else if (val.startsWith('kling')) document.getElementById('params-kling').style.display = 'block';
+      else if (val.startsWith('hailuo')) document.getElementById('params-hailuo').style.display = 'block';
+      else if (val.startsWith('wan')) document.getElementById('params-wan').style.display = 'block';
     }
 
-    // --- Drag & Drop ---
+    // Drag & Drop
     const dropZone = document.getElementById('drop-zone');
     const fileInput = document.getElementById('file-input');
-
     dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
     dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
-    dropZone.addEventListener('drop', e => {
-      e.preventDefault();
-      dropZone.classList.remove('drag-over');
-      const file = e.dataTransfer.files[0];
-      if (file) loadImage(file);
-    });
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files[0]) loadImage(fileInput.files[0]);
-    });
+    dropZone.addEventListener('drop', e => { e.preventDefault(); dropZone.classList.remove('drag-over'); if (e.dataTransfer.files[0]) loadImage(e.dataTransfer.files[0]); });
+    fileInput.addEventListener('change', () => { if (fileInput.files[0]) loadImage(fileInput.files[0]); });
 
     function loadImage(file) {
       imageMime = file.type || 'image/jpeg';
@@ -393,6 +277,7 @@
       reader.onload = e => {
         const dataUrl = e.target.result;
         imageBase64 = dataUrl.split(',')[1];
+        imageThumb = dataUrl;
         document.getElementById('preview-img').src = dataUrl;
         document.getElementById('preview-wrap').style.display = 'block';
         dropZone.style.display = 'none';
@@ -402,7 +287,7 @@
     }
 
     function clearImage() {
-      imageBase64 = null;
+      imageBase64 = null; imageThumb = null;
       document.getElementById('preview-wrap').style.display = 'none';
       dropZone.style.display = 'block';
       fileInput.value = '';
@@ -413,19 +298,17 @@
       el.classList.add('empty');
     }
 
-    // --- Analyze Image (OpenRouter) ---
+    // Analyze
     async function analyzeImage() {
-      const apiKey = document.getElementById('or-key').value.trim();
+      const apiKey = orKeyEl.value.trim();
       const model = document.getElementById('model-select').value;
       const systemPrompt = document.getElementById('system-prompt').value.trim();
-
-      if (!apiKey) return showStatus('請填入 OpenRouter API Key', 'err');
-      if (!imageBase64) return showStatus('請先上傳圖片', 'err');
+      if (!apiKey) return alert('請填入 OpenRouter API Key');
+      if (!imageBase64) return alert('請先上傳圖片');
 
       const btn = document.getElementById('btn-analyze');
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner"></span>分析中...';
-      showStatus('正在分析圖片...', 'wait');
 
       try {
         const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
@@ -440,258 +323,230 @@
             model,
             messages: [
               { role: 'system', content: systemPrompt },
-              {
-                role: 'user',
-                content: [
-                  { type: 'image_url', image_url: { url: `data:${imageMime};base64,${imageBase64}` } },
-                  { type: 'text', text: '請根據這張圖片，產生影片 Prompt。' }
-                ]
-              }
+              { role: 'user', content: [
+                { type: 'image_url', image_url: { url: `data:${imageMime};base64,${imageBase64}` } },
+                { type: 'text', text: '請根據這張圖片，產生影片 Prompt。' }
+              ]}
             ]
           })
         });
-
         const data = await res.json();
         if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
-
         const content = data.choices?.[0]?.message?.content || '';
         if (!content) throw new Error('API 回傳空內容');
-
         const promptEl = document.getElementById('prompt-result');
         promptEl.textContent = content;
         promptEl.classList.remove('empty');
         document.getElementById('btn-generate').disabled = false;
-        showStatus('✅ 分析完成，可以編輯 Prompt 後送出影片生成', 'ok');
       } catch (err) {
-        showStatus(`❌ 分析失敗：${err.message}`, 'err');
+        alert('分析失敗：' + err.message);
       } finally {
         btn.disabled = false;
         btn.textContent = '分析圖片，產生 Prompt';
       }
     }
 
-    // --- Upload image to kie.ai ---
-    async function uploadImageToKie(apiKey) {
-      showStatus('⬆️ 上傳圖片到 kie.ai...', 'wait');
-      const res = await fetch('https://kieai.redpandaai.co/api/file-base64-upload', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify({
-          base64Data: `data:${imageMime};base64,${imageBase64}`,
-          uploadPath: 'ugc-tool',
-          fileName: imageFileName
-        })
-      });
-      const data = await res.json();
-      if (!res.ok || !data.data?.downloadUrl) {
-        throw new Error('圖片上傳失敗：' + (data.msg || JSON.stringify(data)));
-      }
-      return data.data.downloadUrl;
-    }
-
-    // --- Build request body by model ---
+    // Build task body
     function buildTaskBody(model, imageUrl, prompt) {
-      if (model === 'sora-2-image-to-video-stable') {
-        return {
-          model: 'sora-2-image-to-video-stable',
-          input: {
-            prompt,
-            image_urls: [imageUrl],
-            upload_method: 's3',
-            aspect_ratio: document.getElementById('sora-aspect').value,
-            n_frames: document.getElementById('sora-frames').value
-          }
-        };
-      }
-      if (model === 'sora-2-image-to-video') {
-        return {
-          model: 'sora-2-image-to-video',
-          input: {
-            prompt,
-            image_urls: [imageUrl],
-            upload_method: 's3',
-            aspect_ratio: document.getElementById('sora-aspect').value,
-            n_frames: document.getElementById('sora-frames').value
-          }
-        };
-      }
-      if (model === 'sora-2-pro-image-to-video-720') {
-        return {
-          model: 'sora-2-pro-image-to-video',
-          input: {
-            prompt,
-            image_urls: [imageUrl],
-            upload_method: 's3',
-            aspect_ratio: document.getElementById('sora-aspect').value,
-            n_frames: document.getElementById('sora-frames').value,
-            size: 'standard'
-          }
-        };
-      }
-      if (model === 'sora-2-pro-image-to-video-1080') {
-        return {
-          model: 'sora-2-pro-image-to-video',
-          input: {
-            prompt,
-            image_urls: [imageUrl],
-            upload_method: 's3',
-            aspect_ratio: document.getElementById('sora-aspect').value,
-            n_frames: document.getElementById('sora-frames').value,
-            size: 'high'
-          }
-        };
-      }
-      if (model.startsWith('kling')) {
-        return {
-          model,
-          input: {
-            prompt,
-            image_url: imageUrl,
-            duration: parseInt(document.getElementById('kling-duration').value)
-          }
-        };
-      }
-      if (model.startsWith('hailuo')) {
-        return {
-          model,
-          input: {
-            prompt,
-            image_url: imageUrl,
-            duration: parseInt(document.getElementById('hailuo-duration').value),
-            resolution: document.getElementById('hailuo-res').value
-          }
-        };
-      }
-      if (model.startsWith('wan')) {
-        return {
-          model,
-          input: {
-            prompt,
-            image_url: imageUrl,
-            duration: parseInt(document.getElementById('wan-duration').value),
-            resolution: document.getElementById('wan-res').value
-          }
-        };
-      }
-      // veo and others — generic
-      return {
-        model,
-        input: { prompt, image_url: imageUrl }
-      };
+      const base = { upload_method: 's3', aspect_ratio: document.getElementById('sora-aspect').value, n_frames: document.getElementById('sora-frames').value };
+      if (model === 'sora-2-image-to-video-stable') return { model, input: { ...base, prompt, image_urls: [imageUrl] } };
+      if (model === 'sora-2-image-to-video') return { model, input: { ...base, prompt, image_urls: [imageUrl] } };
+      if (model === 'sora-2-pro-image-to-video-720') return { model: 'sora-2-pro-image-to-video', input: { ...base, size: 'standard', prompt, image_urls: [imageUrl] } };
+      if (model === 'sora-2-pro-image-to-video-1080') return { model: 'sora-2-pro-image-to-video', input: { ...base, size: 'high', prompt, image_urls: [imageUrl] } };
+      if (model.startsWith('kling')) return { model, input: { prompt, image_url: imageUrl, duration: parseInt(document.getElementById('kling-duration').value) } };
+      if (model.startsWith('hailuo')) return { model, input: { prompt, image_url: imageUrl, duration: parseInt(document.getElementById('hailuo-duration').value), resolution: document.getElementById('hailuo-res').value } };
+      if (model.startsWith('wan')) return { model, input: { prompt, image_url: imageUrl, duration: parseInt(document.getElementById('wan-duration').value), resolution: document.getElementById('wan-res').value } };
+      return { model, input: { prompt, image_url: imageUrl } };
     }
 
-    // --- Generate Video ---
-    async function generateVideo() {
-      const apiKey = document.getElementById('kie-key').value.trim();
+    // Submit task
+    async function submitTask() {
+      const apiKey = kieKeyEl.value.trim();
       const prompt = document.getElementById('prompt-result').textContent.trim();
       const model = document.getElementById('video-model').value;
+      if (!apiKey) return alert('請填入 kie.ai API Key');
+      if (!imageBase64) return alert('請先上傳圖片');
+      if (!prompt || prompt === '尚未產生 Prompt') return alert('請先產生 Prompt');
 
-      if (!apiKey) return showStatus('請填入 kie.ai API Key', 'err');
-      if (!imageBase64) return showStatus('請先上傳圖片', 'err');
-      if (!prompt || prompt === '尚未產生 Prompt') return showStatus('請先產生 Prompt', 'err');
+      const taskObj = {
+        id: 'pending_' + Date.now(),
+        thumb: imageThumb,
+        model,
+        prompt,
+        state: 'uploading',
+        progress: 0,
+        videoUrl: null,
+        error: null
+      };
+      tasks.push(taskObj);
+      renderTasks();
 
-      const btn = document.getElementById('btn-generate');
-      btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span>處理中...';
+      // Reset form for next image
+      clearImage();
 
       try {
-        // Step 1: upload image
-        const imageUrl = await uploadImageToKie(apiKey);
-        showStatus(`✅ 圖片上傳成功\n📤 送出影片生成請求...`, 'wait');
+        // Upload image
+        updateTask(taskObj.id, { state: 'uploading' });
+        const upRes = await fetch('https://kieai.redpandaai.co/api/file-base64-upload', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Data: `data:${imageMime};base64,${imageBase64 || taskObj._base64}`, uploadPath: 'ugc-tool', fileName: imageFileName })
+        });
+        const upData = await upRes.json();
+        if (!upRes.ok || !upData.data?.downloadUrl) throw new Error('圖片上傳失敗：' + (upData.msg || JSON.stringify(upData)));
+        const imageUrl = upData.data.downloadUrl;
 
-        // Step 2: create task
+        // Create task
         const body = buildTaskBody(model, imageUrl, prompt);
         const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
           method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${apiKey}`,
-            'Content-Type': 'application/json'
-          },
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
           body: JSON.stringify(body)
         });
-
         const data = await res.json();
         if (!res.ok) throw new Error(data.msg || `HTTP ${res.status}`);
-
         const taskId = data.data?.taskId;
         if (!taskId) throw new Error('未取得 taskId：' + JSON.stringify(data));
 
-        showStatus(`✅ 任務建立成功\ntask_id: ${taskId}\n⏳ 等待影片生成（約 2-5 分鐘）...`, 'wait');
-        btn.innerHTML = '<span class="spinner"></span>生成中，請等待...';
-
-        // Step 3: poll
-        await pollVideo(apiKey, taskId);
+        updateTask(taskObj.id, { id: taskId, state: 'wait' });
+        pollTask(taskId, apiKey);
 
       } catch (err) {
-        showStatus(`❌ 失敗：${err.message}`, 'err');
-        btn.disabled = false;
-        btn.textContent = '送出 kie.ai，生成影片';
+        updateTask(taskObj.id, { state: 'fail', error: err.message });
       }
     }
 
-    // --- Poll ---
-    async function pollVideo(apiKey, taskId) {
-      const maxTries = 72; // 6 min
+    // Store base64 before clearing
+    const _origSubmit = submitTask;
+
+    // Poll individual task
+    async function pollTask(taskId, apiKey) {
+      const maxTries = 240; // 20 min
       for (let i = 0; i < maxTries; i++) {
         await sleep(5000);
+        try {
+          const res = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+            headers: { 'Authorization': `Bearer ${apiKey}` }
+          });
+          const data = await res.json();
+          const state = data.data?.state;
+          const progress = data.data?.progress ?? 0;
+          updateTask(taskId, { state: state || 'wait', progress });
 
-        const res = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
-          headers: { 'Authorization': `Bearer ${apiKey}` }
-        });
-        const data = await res.json();
-        const state = data.data?.state;
-        const progress = data.data?.progress ?? '';
-
-        showStatus(
-          `task_id: ${taskId}\n` +
-          `狀態：${state ?? '等待中'}${progress ? '  進度：' + progress + '%' : ''}（第 ${i+1} 次查詢）`,
-          'wait'
-        );
-
-        if (state === 'success') {
-          let videoUrl = null;
-          try {
-            const result = JSON.parse(data.data.resultJson);
-            videoUrl = result.resultUrls?.[0] || result.videoUrl || result.url;
-          } catch(e) {}
-          if (!videoUrl) throw new Error('生成完成但找不到影片網址，回傳：' + JSON.stringify(data.data));
-          showStatus(`✅ 影片生成成功！正在下載...`, 'ok');
-          downloadVideo(videoUrl, `kie_${taskId}.mp4`);
-          document.getElementById('btn-generate').disabled = false;
-          document.getElementById('btn-generate').textContent = '送出 kie.ai，生成影片';
-          return;
-        }
-
-        if (state === 'fail') {
-          throw new Error(`生成失敗：${data.data?.failMsg || data.data?.failCode || JSON.stringify(data.data)}`);
-        }
+          if (state === 'success') {
+            let videoUrl = null;
+            try { const r = JSON.parse(data.data.resultJson); videoUrl = r.resultUrls?.[0] || r.videoUrl; } catch(e) {}
+            updateTask(taskId, { state: 'success', videoUrl, progress: 100 });
+            return;
+          }
+          if (state === 'fail') {
+            updateTask(taskId, { state: 'fail', error: data.data?.failMsg || data.data?.failCode || '生成失敗' });
+            return;
+          }
+        } catch(e) { /* network error, keep polling */ }
       }
-      throw new Error('等待超時（6 分鐘），請至 kie.ai 後台查詢');
+      updateTask(taskId, { state: 'fail', error: '等待超時（20 分鐘）' });
+    }
+
+    function updateTask(id, patch) {
+      const t = tasks.find(t => t.id === id);
+      if (!t) return;
+      Object.assign(t, patch);
+      renderTasks();
+    }
+
+    function renderTasks() {
+      const list = document.getElementById('task-list');
+      const empty = document.getElementById('empty-hint');
+      if (tasks.length === 0) { list.innerHTML = ''; list.appendChild(empty); return; }
+      if (empty.parentNode) empty.parentNode.removeChild(empty);
+
+      list.innerHTML = tasks.map((t, idx) => {
+        const badgeClass = { uploading: 'badge-wait', wait: 'badge-wait', queuing: 'badge-running', generating: 'badge-running', success: 'badge-success', fail: 'badge-fail' }[t.state] || 'badge-wait';
+        const badgeLabel = { uploading: '上傳中', wait: '等待中', queuing: '排隊中', generating: '生成中', success: '完成', fail: '失敗' }[t.state] || t.state;
+        const modelShort = t.model.replace('sora-2-image-to-video', 'Sora2').replace('-stable', ' Stable').replace('/v2-1-pro', ' v2.1').replace('2-3-image-to-video-pro', '2.3 Pro').replace('2-6-image-to-video', '2.6');
+
+        return `<div class="task-card">
+          ${t.thumb ? `<img class="task-thumb" src="${t.thumb}" />` : `<div class="task-thumb-placeholder">🖼️</div>`}
+          <div class="task-info">
+            <div class="task-model">${modelShort}</div>
+            <div class="task-prompt">${escHtml(t.prompt)}</div>
+            <div class="task-id">${t.id.startsWith('pending_') ? '建立中...' : t.id}</div>
+            ${t.error ? `<div class="task-error">${escHtml(t.error)}</div>` : ''}
+          </div>
+          <div class="task-actions">
+            <span class="badge ${badgeClass}">${badgeLabel}</span>
+            ${(t.state === 'generating' || t.state === 'queuing') && t.progress > 0 ? `<div class="progress-bar"><div class="progress-fill" style="width:${t.progress}%"></div></div>` : ''}
+            ${t.state === 'success' && t.videoUrl ? `<button class="btn-dl" onclick="downloadVideo('${t.videoUrl}','kie_${t.id}.mp4')">下載影片</button>` : ''}
+          </div>
+        </div>`;
+      }).reverse().join('');
+    }
+
+    function clearDone() {
+      for (let i = tasks.length - 1; i >= 0; i--) {
+        if (tasks[i].state === 'success' || tasks[i].state === 'fail') tasks.splice(i, 1);
+      }
+      renderTasks();
     }
 
     function downloadVideo(url, filename) {
       const a = document.createElement('a');
-      a.href = url;
-      a.download = filename;
-      a.target = '_blank';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      a.href = url; a.download = filename; a.target = '_blank';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
+    function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    function showStatus(msg, type) {
-      const box = document.getElementById('status-box');
-      box.className = 'show';
-      const cls = type === 'ok' ? 'status-ok' : type === 'err' ? 'status-err' : 'status-wait';
-      box.innerHTML = msg.split('\n').map(line =>
-        `<div class="status-line ${cls}">${line}</div>`
-      ).join('');
-    }
+    // Fix: save base64 before clearing form
+    const origSubmitTask = submitTask;
+    window.submitTask = async function() {
+      // Save current image data before form clear
+      const savedBase64 = imageBase64;
+      const savedMime = imageMime;
+      const savedFileName = imageFileName;
+      const savedThumb = imageThumb;
+
+      const apiKey = kieKeyEl.value.trim();
+      const prompt = document.getElementById('prompt-result').textContent.trim();
+      const model = document.getElementById('video-model').value;
+      if (!apiKey) return alert('請填入 kie.ai API Key');
+      if (!savedBase64) return alert('請先上傳圖片');
+      if (!prompt || prompt === '尚未產生 Prompt') return alert('請先產生 Prompt');
+
+      const taskObj = { id: 'pending_' + Date.now(), thumb: savedThumb, model, prompt, state: 'uploading', progress: 0, videoUrl: null, error: null };
+      tasks.push(taskObj);
+      renderTasks();
+      clearImage();
+
+      try {
+        const upRes = await fetch('https://kieai.redpandaai.co/api/file-base64-upload', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ base64Data: `data:${savedMime};base64,${savedBase64}`, uploadPath: 'ugc-tool', fileName: savedFileName })
+        });
+        const upData = await upRes.json();
+        if (!upRes.ok || !upData.data?.downloadUrl) throw new Error('圖片上傳失敗：' + (upData.msg || JSON.stringify(upData)));
+        const imageUrl = upData.data.downloadUrl;
+
+        const body = buildTaskBody(model, imageUrl, prompt);
+        const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.msg || `HTTP ${res.status}`);
+        const taskId = data.data?.taskId;
+        if (!taskId) throw new Error('未取得 taskId：' + JSON.stringify(data));
+
+        updateTask(taskObj.id, { id: taskId, state: 'wait' });
+        pollTask(taskId, apiKey);
+      } catch (err) {
+        updateTask(taskObj.id, { state: 'fail', error: err.message });
+      }
+    };
   </script>
 </body>
 </html>
