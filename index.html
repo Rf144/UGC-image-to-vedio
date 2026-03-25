@@ -244,6 +244,11 @@
     let imageBase64 = null, imageMime = 'image/jpeg', imageFileName = 'image.jpg', imageThumb = null;
     const tasks = [];
 
+    function updateGenerateBtn() {
+      const p = document.getElementById('prompt-result').textContent.trim();
+      document.getElementById('btn-generate').disabled = !(imageBase64 && p && p !== '尚未產生 Prompt');
+    }
+
     // localStorage keys
     const orKeyEl = document.getElementById('or-key');
     const kieKeyEl = document.getElementById('kie-key');
@@ -251,6 +256,7 @@
     if (localStorage.getItem('kie-key')) kieKeyEl.value = localStorage.getItem('kie-key');
     orKeyEl.addEventListener('input', () => localStorage.setItem('or-key', orKeyEl.value));
     kieKeyEl.addEventListener('input', () => localStorage.setItem('kie-key', kieKeyEl.value));
+    document.getElementById('prompt-result').addEventListener('input', updateGenerateBtn);
 
     // Model params toggle
     function onModelChange() {
@@ -282,6 +288,7 @@
         document.getElementById('preview-wrap').style.display = 'block';
         dropZone.style.display = 'none';
         document.getElementById('btn-analyze').disabled = false;
+        updateGenerateBtn(); // 圖片載入後立即判斷（若有舊 Prompt 可直接送出）
       };
       reader.readAsDataURL(file);
     }
@@ -292,10 +299,7 @@
       dropZone.style.display = 'block';
       fileInput.value = '';
       document.getElementById('btn-analyze').disabled = true;
-      document.getElementById('btn-generate').disabled = true;
-      const el = document.getElementById('prompt-result');
-      el.textContent = '尚未產生 Prompt';
-      el.classList.add('empty');
+      updateGenerateBtn(); // 圖片清空後重新判斷按鈕狀態（若有舊 Prompt 仍保留，等新圖上傳後可直接送出）
     }
 
     // Analyze
@@ -337,7 +341,7 @@
         const promptEl = document.getElementById('prompt-result');
         promptEl.textContent = content;
         promptEl.classList.remove('empty');
-        document.getElementById('btn-generate').disabled = false;
+        updateGenerateBtn();
       } catch (err) {
         alert('分析失敗：' + err.message);
       } finally {
