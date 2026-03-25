@@ -359,66 +359,6 @@
       return { model, input: { prompt, image_url: imageUrl } };
     }
 
-    // Submit task
-    async function submitTask() {
-      const apiKey = kieKeyEl.value.trim();
-      const prompt = document.getElementById('prompt-result').textContent.trim();
-      const model = document.getElementById('video-model').value;
-      if (!apiKey) return alert('請填入 kie.ai API Key');
-      if (!imageBase64) return alert('請先上傳圖片');
-      if (!prompt || prompt === '尚未產生 Prompt') return alert('請先產生 Prompt');
-
-      const taskObj = {
-        id: 'pending_' + Date.now(),
-        thumb: imageThumb,
-        model,
-        prompt,
-        state: 'uploading',
-        progress: 0,
-        videoUrl: null,
-        error: null
-      };
-      tasks.push(taskObj);
-      renderTasks();
-
-      // Reset form for next image
-      clearImage();
-
-      try {
-        // Upload image
-        updateTask(taskObj.id, { state: 'uploading' });
-        const upRes = await fetch('https://kieai.redpandaai.co/api/file-base64-upload', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ base64Data: `data:${imageMime};base64,${imageBase64 || taskObj._base64}`, uploadPath: 'ugc-tool', fileName: imageFileName })
-        });
-        const upData = await upRes.json();
-        if (!upRes.ok || !upData.data?.downloadUrl) throw new Error('圖片上傳失敗：' + (upData.msg || JSON.stringify(upData)));
-        const imageUrl = upData.data.downloadUrl;
-
-        // Create task
-        const body = buildTaskBody(model, imageUrl, prompt);
-        const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
-        });
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.msg || `HTTP ${res.status}`);
-        const taskId = data.data?.taskId;
-        if (!taskId) throw new Error('未取得 taskId：' + JSON.stringify(data));
-
-        updateTask(taskObj.id, { id: taskId, state: 'wait' });
-        pollTask(taskId, apiKey);
-
-      } catch (err) {
-        updateTask(taskObj.id, { state: 'fail', error: err.message });
-      }
-    }
-
-    // Store base64 before clearing
-    const _origSubmit = submitTask;
-
     // Poll individual task
     async function pollTask(taskId, apiKey) {
       const maxTries = 240; // 20 min
@@ -499,18 +439,16 @@
     function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
-    // Fix: save base64 before clearing form
-    const origSubmitTask = submitTask;
-    window.submitTask = async function() {
-      // Save current image data before form clear
+    async function submitTask() {
+      // 先把資料存起來，再清空表單
       const savedBase64 = imageBase64;
       const savedMime = imageMime;
       const savedFileName = imageFileName;
       const savedThumb = imageThumb;
-
       const apiKey = kieKeyEl.value.trim();
       const prompt = document.getElementById('prompt-result').textContent.trim();
       const model = document.getElementById('video-model').value;
+
       if (!apiKey) return alert('請填入 kie.ai API Key');
       if (!savedBase64) return alert('請先上傳圖片');
       if (!prompt || prompt === '尚未產生 Prompt') return alert('請先產生 Prompt');
@@ -518,7 +456,7 @@
       const taskObj = { id: 'pending_' + Date.now(), thumb: savedThumb, model, prompt, state: 'uploading', progress: 0, videoUrl: null, error: null };
       tasks.push(taskObj);
       renderTasks();
-      clearImage();
+      clearImage(); // 清空表單讓用戶可以馬上上傳下一張
 
       try {
         const upRes = await fetch('https://kieai.redpandaai.co/api/file-base64-upload', {
@@ -528,9 +466,8 @@
         });
         const upData = await upRes.json();
         if (!upRes.ok || !upData.data?.downloadUrl) throw new Error('圖片上傳失敗：' + (upData.msg || JSON.stringify(upData)));
-        const imageUrl = upData.data.downloadUrl;
 
-        const body = buildTaskBody(model, imageUrl, prompt);
+        const body = buildTaskBody(model, upData.data.downloadUrl, prompt);
         const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
@@ -546,7 +483,7 @@
       } catch (err) {
         updateTask(taskObj.id, { state: 'fail', error: err.message });
       }
-    };
+    }
   </script>
 </body>
 </html>
