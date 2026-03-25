@@ -244,6 +244,45 @@
       <div id="prompt-result" class="empty" contenteditable="true">尚未產生 Prompt</div>
     </div>
 
+    <!-- Kling Model Settings -->
+    <div class="card">
+      <h2>影片生成設定</h2>
+      <div class="row">
+        <div>
+          <label>Kling AI 模型</label>
+          <select id="kling-model">
+            <option value="kling-v2-master">Kling v2 Master（最高品質）</option>
+            <option value="kling-v1-6">Kling v1.6</option>
+            <option value="kling-v1-5">Kling v1.5</option>
+            <option value="kling-v1" selected>Kling v1（標準）</option>
+          </select>
+        </div>
+        <div>
+          <label>影片長度</label>
+          <select id="kling-duration">
+            <option value="5" selected>5 秒</option>
+            <option value="10">10 秒</option>
+          </select>
+        </div>
+      </div>
+      <div class="row" style="margin-top:0">
+        <div>
+          <label>生成模式</label>
+          <select id="kling-mode">
+            <option value="std" selected>標準（std）</option>
+            <option value="pro">高品質（pro）</option>
+          </select>
+        </div>
+        <div>
+          <label>創意度（CFG Scale）</label>
+          <input type="range" id="kling-cfg" min="0" max="1" step="0.1" value="0.5"
+            oninput="document.getElementById('cfg-val').textContent=this.value"
+            style="margin-top:8px; width:100%; accent-color:#5b5bef" />
+          <span style="font-size:0.8rem; color:#888">值：<span id="cfg-val">0.5</span></span>
+        </div>
+      </div>
+    </div>
+
     <!-- Generate Video -->
     <button class="btn btn-generate" id="btn-generate" onclick="generateVideo()" disabled>
       送出 Kling AI，生成影片
@@ -383,12 +422,12 @@
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            model_name: 'kling-v1',
+            model_name: document.getElementById('kling-model').value,
             image: `data:${imageMime};base64,${imageBase64}`,
             prompt,
-            duration: '5',
-            mode: 'std',
-            cfg_scale: 0.5
+            duration: document.getElementById('kling-duration').value,
+            mode: document.getElementById('kling-mode').value,
+            cfg_scale: parseFloat(document.getElementById('kling-cfg').value)
           })
         });
 
