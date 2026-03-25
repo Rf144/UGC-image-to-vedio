@@ -263,7 +263,7 @@
     function startTimerIfNeeded() {
       if (timerInterval) return;
       timerInterval = setInterval(() => {
-        const hasActive = tasks.some(t => ['uploading','wait','queuing','generating'].includes(t.state));
+        const hasActive = tasks.some(t => ['uploading','wait','waiting','queuing','generating'].includes(t.state));
         if (hasActive) renderTasks();
         else { clearInterval(timerInterval); timerInterval = null; }
       }, 1000);
@@ -298,7 +298,7 @@
         const apiKey = kieKeyEl.value.trim();
         if (apiKey) {
           loaded.forEach(t => {
-            if (['wait', 'queuing', 'generating'].includes(t.state)) {
+            if (['wait', 'waiting', 'queuing', 'generating'].includes(t.state)) {
               pollTask(t.id, apiKey); // 恢復輪詢未完成的任務
             }
           });
@@ -484,11 +484,11 @@
       }
 
       list.innerHTML = tasks.map((t, idx) => {
-        const badgeClass = { uploading: 'badge-wait', wait: 'badge-wait', queuing: 'badge-running', generating: 'badge-running', success: 'badge-success', fail: 'badge-fail' }[t.state] || 'badge-wait';
-        const badgeLabel = { uploading: '上傳中', wait: '等待中', queuing: '排隊中', generating: '生成中', success: '完成', fail: '失敗' }[t.state] || t.state;
+        const badgeClass = { uploading: 'badge-wait', wait: 'badge-wait', waiting: 'badge-wait', queuing: 'badge-running', generating: 'badge-running', success: 'badge-success', fail: 'badge-fail' }[t.state] || 'badge-wait';
+        const badgeLabel = { uploading: '上傳中', wait: '等待中', waiting: '等待中', queuing: '排隊中', generating: '生成中', success: '完成', fail: '失敗' }[t.state] || t.state;
         const modelShort = t.model.replace('sora-2-image-to-video', 'Sora2').replace('-stable', ' Stable').replace('/v2-1-pro', ' v2.1').replace('2-3-image-to-video-pro', '2.3 Pro').replace('2-6-image-to-video', '2.6');
 
-        const isActive = ['uploading','wait','queuing','generating'].includes(t.state);
+        const isActive = ['uploading','wait','waiting','queuing','generating'].includes(t.state);
         const timerHtml = isActive && t.startTime ? `<div class="task-timer">⏱ ${formatElapsed(t.startTime)}</div>` : '';
         const retryHtml = t.state === 'fail' && t.imageUrl ? `<button class="btn-retry" onclick="retryTask('${t.id}')">重試</button>` : '';
 
