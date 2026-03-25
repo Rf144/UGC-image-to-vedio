@@ -187,9 +187,10 @@
       <h2>LLM 設定（圖片分析）</h2>
       <label>選擇模型</label>
       <select id="model-select">
+        <option value="google/gemini-2.0-flash-001" selected>Gemini 2.0 Flash</option>
+        <option value="google/gemini-2.5-pro-preview-03-25">Gemini 2.5 Pro Preview</option>
         <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (Free)</option>
         <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
-        <option value="google/gemini-flash-1.5">Gemini Flash 1.5</option>
         <option value="openai/gpt-4o">GPT-4o</option>
         <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
         <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
@@ -233,8 +234,9 @@
       <label>選擇影片模型</label>
       <select id="video-model" onchange="onModelChange()">
         <optgroup label="─ Sora 2">
+          <option value="sora-2-image-to-video-stable" data-price="~$0.175/支" selected>Sora 2 Stable  ·  ~$0.175 / 10秒</option>
           <option value="sora-2-image-to-video" data-price="~$1/支">Sora 2 標準  ·  ~$1 / 10秒</option>
-          <option value="sora-2-pro-image-to-video-720" data-price="~$3/支" selected>Sora 2 Pro 720p  ·  ~$3 / 10秒</option>
+          <option value="sora-2-pro-image-to-video-720" data-price="~$3/支">Sora 2 Pro 720p  ·  ~$3 / 10秒</option>
           <option value="sora-2-pro-image-to-video-1080" data-price="~$5/支">Sora 2 Pro 1080p  ·  ~$5 / 10秒</option>
         </optgroup>
         <optgroup label="─ Google Veo">
@@ -348,7 +350,7 @@
       const val = document.getElementById('video-model').value;
       document.querySelectorAll('.model-params').forEach(el => el.classList.remove('active'));
 
-      if (val.startsWith('sora-2')) {
+      if (val.startsWith('sora-2') || val.startsWith('sora-')) {
         document.getElementById('params-sora').classList.add('active');
       } else if (val.startsWith('kling')) {
         document.getElementById('params-kling').classList.add('active');
@@ -423,7 +425,7 @@
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
             'HTTP-Referer': 'https://frabjous-peony-72f93f.netlify.app',
-            'X-Title': '圖生影片工具'
+            'X-Title': 'UGC Video Tool'
           },
           body: JSON.stringify({
             model,
@@ -483,6 +485,18 @@
 
     // --- Build request body by model ---
     function buildTaskBody(model, imageUrl, prompt) {
+      if (model === 'sora-2-image-to-video-stable') {
+        return {
+          model: 'sora-2-image-to-video-stable',
+          input: {
+            prompt,
+            image_urls: [imageUrl],
+            upload_method: 's3',
+            aspect_ratio: document.getElementById('sora-aspect').value,
+            n_frames: document.getElementById('sora-frames').value
+          }
+        };
+      }
       if (model === 'sora-2-image-to-video') {
         return {
           model: 'sora-2-image-to-video',
