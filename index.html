@@ -86,6 +86,9 @@
 
     .btn-dl { background: linear-gradient(135deg, #5b5bef, #8b5cf6); color: #fff; border: none; border-radius: 8px; padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
     .btn-dl:hover { opacity: 0.85; }
+    .btn-retry { background: #2a1a0a; border: 1px solid #7c4e1e; color: #fb923c; border-radius: 8px; padding: 7px 14px; font-size: 0.82rem; font-weight: 600; cursor: pointer; white-space: nowrap; }
+    .btn-retry:hover { opacity: 0.85; }
+    .task-timer { font-size: 0.72rem; color: #5b8bef; margin-top: 3px; font-variant-numeric: tabular-nums; }
 
     .task-status-msg { font-size: 0.72rem; color: #888; margin-top: 2px; }
     .task-error { font-size: 0.72rem; color: #f87171; margin-top: 2px; max-width: 200px; }
@@ -249,6 +252,23 @@
       document.getElementById('btn-generate').disabled = !(imageBase64 && p && p !== '尚未產生 Prompt');
     }
 
+    // ── 計時器 ──
+    let timerInterval = null;
+    function formatElapsed(startTime) {
+      const sec = Math.floor((Date.now() - startTime) / 1000);
+      const m = Math.floor(sec / 60);
+      const s = sec % 60;
+      return `${m}:${s.toString().padStart(2, '0')}`;
+    }
+    function startTimerIfNeeded() {
+      if (timerInterval) return;
+      timerInterval = setInterval(() => {
+        const hasActive = tasks.some(t => ['uploading','wait','queuing','generating'].includes(t.state));
+        if (hasActive) renderTasks();
+        else { clearInterval(timerInterval); timerInterval = null; }
+      }, 1000);
+    }
+
     // ── 任務持久化 ──
     function saveTasks() {
       const toSave = tasks.map(t =>
@@ -283,6 +303,7 @@
             }
           });
         }
+        startTimerIfNeeded();
       } catch(e) {}
     })();
 
@@ -467,6 +488,10 @@
         const badgeLabel = { uploading: '上傳中', wait: '等待中', queuing: '排隊中', generating: '生成中', success: '完成', fail: '失敗' }[t.state] || t.state;
         const modelShort = t.model.replace('sora-2-image-to-video', 'Sora2').replace('-stable', ' Stable').replace('/v2-1-pro', ' v2.1').replace('2-3-image-to-video-pro', '2.3 Pro').replace('2-6-image-to-video', '2.6');
 
+        const isActive = ['uploading','wait','queuing','generating'].includes(t.state);
+        const timerHtml = isActive && t.startTime ? `<div class="task-timer">⏱ ${formatElapsed(t.startTime)}</div>` : '';
+        const retryHtml = t.state === 'fail' && t.imageUrl ? `<button class="btn-retry" onclick="retryTask('${t.id}')">重試</button>` : '';
+
         return `<div class="task-card">
           ${t.thumb ? `<img class="task-thumb" src="${t.thumb}" />` : `<div class="task-thumb-placeholder">🖼️</div>`}
           <div class="task-info">
@@ -477,8 +502,10 @@
           </div>
           <div class="task-actions">
             <span class="badge ${badgeClass}">${badgeLabel}</span>
+            ${timerHtml}
             ${(t.state === 'generating' || t.state === 'queuing') && t.progress > 0 ? `<div class="progress-bar"><div class="progress-fill" style="width:${t.progress}%"></div></div>` : ''}
             ${t.state === 'success' && t.videoUrl ? `<button class="btn-dl" onclick="downloadVideo('${t.id}')">下載影片</button>` : ''}
+            ${retryHtml}
           </div>
         </div>`;
       }).reverse().join('');
@@ -501,6 +528,33 @@
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
+    async function retryTask(taskId) {
+      const t = tasks.find(t => t.id === taskId);
+      if (!t) return;
+      const apiKey = kieKeyEl.value.trim();
+      if (!apiKey) return alert('請填入 kie.ai API Key');
+
+      updateTask(taskId, { state: 'wait', error: null, progress: 0, videoUrl: null, startTime: Date.now() });
+      startTimerIfNeeded();
+
+      try {
+        const body = buildTaskBody(t.model, t.imageUrl, t.prompt);
+        const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify(body)
+        });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.msg || `HTTP ${res.status}`);
+        const newTaskId = data.data?.taskId;
+        if (!newTaskId) throw new Error('未取得 taskId：' + JSON.stringify(data));
+        updateTask(taskId, { id: newTaskId, state: 'wait' });
+        pollTask(newTaskId, apiKey);
+      } catch (err) {
+        updateTask(taskId, { state: 'fail', error: err.message });
+      }
+    }
+
     function escHtml(str) { return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
     function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
 
@@ -518,10 +572,11 @@
       if (!savedBase64) return alert('請先上傳圖片');
       if (!prompt || prompt === '尚未產生 Prompt') return alert('請先產生 Prompt');
 
-      const taskObj = { id: 'pending_' + Date.now(), thumb: savedThumb, model, prompt, state: 'uploading', progress: 0, videoUrl: null, error: null, keywords: null };
+      const taskObj = { id: 'pending_' + Date.now(), thumb: savedThumb, model, prompt, state: 'uploading', progress: 0, videoUrl: null, error: null, keywords: null, imageUrl: null, startTime: Date.now() };
       tasks.push(taskObj);
       renderTasks();
       saveTasks();
+      startTimerIfNeeded();
       clearImage();
 
       // 背景生成關鍵字檔名（不阻塞上傳流程）
@@ -541,7 +596,10 @@
         const upData = await upRes.json();
         if (!upRes.ok || !upData.data?.downloadUrl) throw new Error('圖片上傳失敗：' + (upData.msg || JSON.stringify(upData)));
 
-        const body = buildTaskBody(model, upData.data.downloadUrl, prompt);
+        const imageUrl = upData.data.downloadUrl;
+        updateTask(taskObj.id, { imageUrl }); // 儲存供重試用
+
+        const body = buildTaskBody(model, imageUrl, prompt);
         const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
