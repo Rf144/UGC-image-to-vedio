@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>圖生影片工具</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #0f0f13;
+      color: #e0e0e0;
+      min-height: 100vh;
+      padding: 32px 16px;
+    }
+
+    h1 {
+      text-align: center;
+      font-size: 1.6rem;
+      margin-bottom: 28px;
+      color: #fff;
+      letter-spacing: 2px;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    .card {
+      background: #1a1a24;
+      border: 1px solid #2e2e40;
+      border-radius: 12px;
+      padding: 20px 24px;
+    }
+
+    .card h2 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      color: #888;
+      margin-bottom: 14px;
+    }
+
+    label {
+      display: block;
+      font-size: 0.82rem;
+      color: #aaa;
+      margin-bottom: 5px;
+      margin-top: 12px;
+    }
+    label:first-of-type { margin-top: 0; }
+
+    input[type="text"], input[type="password"], select, textarea {
+      width: 100%;
+      background: #111118;
+      border: 1px solid #2e2e40;
+      border-radius: 8px;
+      color: #e0e0e0;
+      font-size: 0.88rem;
+      padding: 9px 12px;
+      outline: none;
+      transition: border-color 0.2s;
+      font-family: inherit;
+    }
+    input:focus, select:focus, textarea:focus {
+      border-color: #5b5bef;
+    }
+    textarea { resize: vertical; line-height: 1.5; }
+
+    /* Drop zone */
+    #drop-zone {
+      border: 2px dashed #2e2e40;
+      border-radius: 12px;
+      padding: 40px 20px;
+      text-align: center;
+      cursor: pointer;
+      transition: border-color 0.2s, background 0.2s;
+      position: relative;
+    }
+    #drop-zone.drag-over {
+      border-color: #5b5bef;
+      background: #1a1a30;
+    }
+    #drop-zone .icon { font-size: 2.5rem; margin-bottom: 10px; }
+    #drop-zone p { color: #888; font-size: 0.9rem; }
+    #drop-zone input[type="file"] {
+      position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
+    }
+
+    #preview-wrap {
+      display: none;
+      margin-top: 14px;
+      text-align: center;
+    }
+    #preview-wrap img {
+      max-height: 260px;
+      max-width: 100%;
+      border-radius: 8px;
+      border: 1px solid #2e2e40;
+    }
+    #preview-wrap button {
+      display: block;
+      margin: 8px auto 0;
+      background: none;
+      border: none;
+      color: #888;
+      font-size: 0.8rem;
+      cursor: pointer;
+      text-decoration: underline;
+    }
+
+    /* Generated prompt */
+    #prompt-result {
+      min-height: 80px;
+      background: #111118;
+      border: 1px solid #2e2e40;
+      border-radius: 8px;
+      padding: 10px 12px;
+      font-size: 0.88rem;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      color: #ccc;
+    }
+    #prompt-result.empty { color: #444; font-style: italic; }
+
+    /* Buttons */
+    .btn {
+      width: 100%;
+      padding: 13px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: opacity 0.2s, transform 0.1s;
+      letter-spacing: 0.5px;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn-analyze { background: linear-gradient(135deg, #5b5bef, #8b5cf6); color: #fff; }
+    .btn-generate { background: linear-gradient(135deg, #ef5b5b, #f97316); color: #fff; }
+
+    /* Status */
+    #status-box {
+      display: none;
+      background: #111118;
+      border: 1px solid #2e2e40;
+      border-radius: 8px;
+      padding: 14px 16px;
+      font-size: 0.85rem;
+      color: #aaa;
+      line-height: 1.6;
+    }
+    #status-box.show { display: block; }
+    .status-line { margin-bottom: 4px; }
+    .status-ok { color: #4ade80; }
+    .status-err { color: #f87171; }
+    .status-wait { color: #facc15; }
+
+    /* Spinner */
+    .spinner {
+      display: inline-block;
+      width: 14px; height: 14px;
+      border: 2px solid #444;
+      border-top-color: #5b5bef;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+      vertical-align: middle;
+      margin-right: 6px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .row { display: flex; gap: 12px; }
+    .row > * { flex: 1; }
+  </style>
+</head>
+<body>
+  <h1>圖生影片工具</h1>
+
+  <div class="container">
+
+    <!-- API Keys -->
+    <div class="card">
+      <h2>API 設定</h2>
+      <div class="row">
+        <div>
+          <label>OpenRouter API Key</label>
+          <input type="password" id="or-key" value="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" />
+        </div>
+        <div>
+          <label>Kling AI API Key</label>
+          <input type="password" id="kling-key" value="974766152b47124eccb7b1ef6407a0e9" />
+        </div>
+      </div>
+    </div>
+
+    <!-- LLM Settings -->
+    <div class="card">
+      <h2>LLM 設定</h2>
+      <label>選擇模型</label>
+      <select id="model-select">
+        <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (Free)</option>
+        <option value="google/gemini-pro-1.5">Gemini Pro 1.5</option>
+        <option value="google/gemini-flash-1.5">Gemini Flash 1.5</option>
+        <option value="openai/gpt-4o">GPT-4o</option>
+        <option value="openai/gpt-4o-mini">GPT-4o Mini</option>
+        <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet</option>
+        <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
+        <option value="meta-llama/llama-3.2-90b-vision-instruct">Llama 3.2 90B Vision</option>
+      </select>
+
+      <label>System Prompt</label>
+      <textarea id="system-prompt" rows="4">分析這張電商產品圖，產生一段適合短影片的腳本描述</textarea>
+    </div>
+
+    <!-- Image Upload -->
+    <div class="card">
+      <h2>上傳圖片</h2>
+      <div id="drop-zone">
+        <input type="file" id="file-input" accept="image/*" />
+        <div class="icon">🖼️</div>
+        <p>拖曳圖片到這裡，或點擊選擇檔案</p>
+        <p style="font-size:0.75rem; margin-top:6px; color:#555;">支援 JPG、PNG、WEBP</p>
+      </div>
+      <div id="preview-wrap">
+        <img id="preview-img" src="" alt="預覽" />
+        <button onclick="clearImage()">✕ 移除圖片</button>
+      </div>
+    </div>
+
+    <!-- Analyze -->
+    <button class="btn btn-analyze" id="btn-analyze" onclick="analyzeImage()" disabled>
+      分析圖片，產生 Prompt
+    </button>
+
+    <!-- Generated Prompt -->
+    <div class="card">
+      <h2>產生的 Prompt（可編輯）</h2>
+      <div id="prompt-result" class="empty" contenteditable="true">尚未產生 Prompt</div>
+    </div>
+
+    <!-- Generate Video -->
+    <button class="btn btn-generate" id="btn-generate" onclick="generateVideo()" disabled>
+      送出 Kling AI，生成影片
+    </button>
+
+    <!-- Status -->
+    <div id="status-box"></div>
+
+  </div>
+
+  <script>
+    let imageBase64 = null;
+    let imageMime = 'image/jpeg';
+
+    // --- Drag & Drop ---
+    const dropZone = document.getElementById('drop-zone');
+    const fileInput = document.getElementById('file-input');
+
+    dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+    dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+    dropZone.addEventListener('drop', e => {
+      e.preventDefault();
+      dropZone.classList.remove('drag-over');
+      const file = e.dataTransfer.files[0];
+      if (file) loadImage(file);
+    });
+    fileInput.addEventListener('change', () => {
+      if (fileInput.files[0]) loadImage(fileInput.files[0]);
+    });
+
+    function loadImage(file) {
+      imageMime = file.type || 'image/jpeg';
+      const reader = new FileReader();
+      reader.onload = e => {
+        const dataUrl = e.target.result;
+        imageBase64 = dataUrl.split(',')[1];
+        document.getElementById('preview-img').src = dataUrl;
+        document.getElementById('preview-wrap').style.display = 'block';
+        dropZone.style.display = 'none';
+        document.getElementById('btn-analyze').disabled = false;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearImage() {
+      imageBase64 = null;
+      document.getElementById('preview-wrap').style.display = 'none';
+      dropZone.style.display = 'block';
+      fileInput.value = '';
+      document.getElementById('btn-analyze').disabled = true;
+      document.getElementById('btn-generate').disabled = true;
+      setPromptEmpty();
+    }
+
+    function setPromptEmpty() {
+      const el = document.getElementById('prompt-result');
+      el.textContent = '尚未產生 Prompt';
+      el.classList.add('empty');
+    }
+
+    // --- Analyze Image ---
+    async function analyzeImage() {
+      const apiKey = document.getElementById('or-key').value.trim();
+      const model = document.getElementById('model-select').value;
+      const systemPrompt = document.getElementById('system-prompt').value.trim();
+
+      if (!apiKey) return showStatus('請填入 OpenRouter API Key', 'err');
+      if (!imageBase64) return showStatus('請先上傳圖片', 'err');
+
+      const btn = document.getElementById('btn-analyze');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>分析中...';
+      showStatus('正在分析圖片...', 'wait');
+
+      try {
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': 'https://github.com/Rf144/-',
+            'X-Title': '圖生影片工具'
+          },
+          body: JSON.stringify({
+            model,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              {
+                role: 'user',
+                content: [
+                  { type: 'image_url', image_url: { url: `data:${imageMime};base64,${imageBase64}` } },
+                  { type: 'text', text: '請根據這張圖片，產生影片 Prompt。' }
+                ]
+              }
+            ]
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error?.message || `HTTP ${res.status}`);
+
+        const content = data.choices?.[0]?.message?.content || '';
+        if (!content) throw new Error('API 回傳空內容');
+
+        const promptEl = document.getElementById('prompt-result');
+        promptEl.textContent = content;
+        promptEl.classList.remove('empty');
+        document.getElementById('btn-generate').disabled = false;
+        showStatus('✅ 分析完成，可以編輯 Prompt 後送出影片生成', 'ok');
+      } catch (err) {
+        showStatus(`❌ 分析失敗：${err.message}`, 'err');
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '分析圖片，產生 Prompt';
+      }
+    }
+
+    // --- Generate Video ---
+    async function generateVideo() {
+      const apiKey = document.getElementById('kling-key').value.trim();
+      const prompt = document.getElementById('prompt-result').textContent.trim();
+
+      if (!apiKey) return showStatus('請填入 Kling AI API Key', 'err');
+      if (!imageBase64) return showStatus('請先上傳圖片', 'err');
+      if (!prompt || prompt === '尚未產生 Prompt') return showStatus('請先產生 Prompt', 'err');
+
+      const btn = document.getElementById('btn-generate');
+      btn.disabled = true;
+      btn.innerHTML = '<span class="spinner"></span>送出中...';
+      showStatus('正在送出 Kling AI 影片生成請求...', 'wait');
+
+      try {
+        const res = await fetch('https://api.klingai.com/v1/videos/image2video', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            model_name: 'kling-v1',
+            image: `data:${imageMime};base64,${imageBase64}`,
+            prompt,
+            duration: '5',
+            mode: 'std',
+            cfg_scale: 0.5
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+
+        const taskId = data.data?.task_id;
+        if (!taskId) throw new Error('未取得 task_id：' + JSON.stringify(data));
+
+        showStatus(`任務建立成功，task_id: ${taskId}\n⏳ 等待影片生成（約 2-5 分鐘）...`, 'wait');
+        btn.innerHTML = '<span class="spinner"></span>生成中，請等待...';
+
+        await pollVideo(apiKey, taskId);
+      } catch (err) {
+        showStatus(`❌ 送出失敗：${err.message}`, 'err');
+        btn.disabled = false;
+        btn.textContent = '送出 Kling AI，生成影片';
+      }
+    }
+
+    async function pollVideo(apiKey, taskId) {
+      const maxTries = 60;
+      const interval = 5000;
+
+      for (let i = 0; i < maxTries; i++) {
+        await sleep(interval);
+
+        const res = await fetch(`https://api.klingai.com/v1/videos/image2video/${taskId}`, {
+          headers: { 'Authorization': `Bearer ${apiKey}` }
+        });
+        const data = await res.json();
+        const status = data.data?.task_status;
+
+        showStatus(`task_id: ${taskId}\n狀態：${status}（第 ${i+1} 次查詢）`, 'wait');
+
+        if (status === 'succeed') {
+          const videoUrl = data.data?.task_result?.videos?.[0]?.url;
+          if (!videoUrl) throw new Error('找不到影片網址');
+          showStatus(`✅ 影片生成成功！正在下載...`, 'ok');
+          downloadVideo(videoUrl, `kling_${taskId}.mp4`);
+          document.getElementById('btn-generate').disabled = false;
+          document.getElementById('btn-generate').textContent = '送出 Kling AI，生成影片';
+          return;
+        }
+
+        if (status === 'failed') {
+          throw new Error('Kling AI 生成失敗：' + JSON.stringify(data.data));
+        }
+      }
+      throw new Error('等待超時，請稍後手動查詢');
+    }
+
+    function downloadVideo(url, filename) {
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      a.target = '_blank';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+    }
+
+    function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+    function showStatus(msg, type) {
+      const box = document.getElementById('status-box');
+      box.className = 'show';
+      const cls = type === 'ok' ? 'status-ok' : type === 'err' ? 'status-err' : 'status-wait';
+      box.innerHTML = msg.split('\n').map(line =>
+        `<div class="status-line ${cls}">${line}</div>`
+      ).join('');
+    }
+  </script>
+</body>
+</html>
