@@ -173,13 +173,14 @@
       <div class="row">
         <div>
           <label>OpenRouter API Key</label>
-          <input type="password" id="or-key" value="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" />
+          <input type="password" id="or-key" placeholder="sk-or-v1-..." />
         </div>
         <div>
           <label>kie.ai API Key</label>
-          <input type="password" id="kie-key" value="974766152b47124eccb7b1ef6407a0e9" />
+          <input type="password" id="kie-key" placeholder="kie.ai API Key" />
         </div>
       </div>
+      <p style="font-size:0.75rem; color:#555; margin-top:8px;">Key 自動儲存於瀏覽器，不會上傳至伺服器</p>
     </div>
 
     <!-- LLM Settings -->
@@ -344,6 +345,14 @@
     let imageBase64 = null;
     let imageMime = 'image/jpeg';
     let imageFileName = 'image.jpg';
+
+    // --- 從 localStorage 讀取已儲存的 Key ---
+    const orKeyEl = document.getElementById('or-key');
+    const kieKeyEl = document.getElementById('kie-key');
+    if (localStorage.getItem('or-key')) orKeyEl.value = localStorage.getItem('or-key');
+    if (localStorage.getItem('kie-key')) kieKeyEl.value = localStorage.getItem('kie-key');
+    orKeyEl.addEventListener('input', () => localStorage.setItem('or-key', orKeyEl.value));
+    kieKeyEl.addEventListener('input', () => localStorage.setItem('kie-key', kieKeyEl.value));
 
     // --- Model change handler ---
     function onModelChange() {
