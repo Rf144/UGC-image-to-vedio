@@ -67,10 +67,21 @@
       transition: border-color 0.2s;
       font-family: inherit;
     }
-    input:focus, select:focus, textarea:focus {
-      border-color: #5b5bef;
-    }
+    input:focus, select:focus, textarea:focus { border-color: #5b5bef; }
     textarea { resize: vertical; line-height: 1.5; }
+
+    /* Model price tag */
+    .model-price {
+      display: inline-block;
+      font-size: 0.75rem;
+      color: #facc15;
+      background: #2a2a10;
+      border: 1px solid #5a5010;
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-left: 8px;
+      vertical-align: middle;
+    }
 
     /* Drop zone */
     #drop-zone {
@@ -82,39 +93,24 @@
       transition: border-color 0.2s, background 0.2s;
       position: relative;
     }
-    #drop-zone.drag-over {
-      border-color: #5b5bef;
-      background: #1a1a30;
-    }
+    #drop-zone.drag-over { border-color: #5b5bef; background: #1a1a30; }
     #drop-zone .icon { font-size: 2.5rem; margin-bottom: 10px; }
     #drop-zone p { color: #888; font-size: 0.9rem; }
     #drop-zone input[type="file"] {
       position: absolute; inset: 0; opacity: 0; cursor: pointer; width: 100%;
     }
 
-    #preview-wrap {
-      display: none;
-      margin-top: 14px;
-      text-align: center;
-    }
+    #preview-wrap { display: none; margin-top: 14px; text-align: center; }
     #preview-wrap img {
-      max-height: 260px;
-      max-width: 100%;
-      border-radius: 8px;
-      border: 1px solid #2e2e40;
+      max-height: 260px; max-width: 100%;
+      border-radius: 8px; border: 1px solid #2e2e40;
     }
     #preview-wrap button {
-      display: block;
-      margin: 8px auto 0;
-      background: none;
-      border: none;
-      color: #888;
-      font-size: 0.8rem;
-      cursor: pointer;
-      text-decoration: underline;
+      display: block; margin: 8px auto 0;
+      background: none; border: none; color: #888;
+      font-size: 0.8rem; cursor: pointer; text-decoration: underline;
     }
 
-    /* Generated prompt */
     #prompt-result {
       min-height: 80px;
       background: #111118;
@@ -128,16 +124,10 @@
     }
     #prompt-result.empty { color: #444; font-style: italic; }
 
-    /* Buttons */
     .btn {
-      width: 100%;
-      padding: 13px;
-      border: none;
-      border-radius: 10px;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: opacity 0.2s, transform 0.1s;
+      width: 100%; padding: 13px; border: none;
+      border-radius: 10px; font-size: 1rem; font-weight: 600;
+      cursor: pointer; transition: opacity 0.2s, transform 0.1s;
       letter-spacing: 0.5px;
     }
     .btn:active { transform: scale(0.98); }
@@ -145,16 +135,10 @@
     .btn-analyze { background: linear-gradient(135deg, #5b5bef, #8b5cf6); color: #fff; }
     .btn-generate { background: linear-gradient(135deg, #ef5b5b, #f97316); color: #fff; }
 
-    /* Status */
     #status-box {
-      display: none;
-      background: #111118;
-      border: 1px solid #2e2e40;
-      border-radius: 8px;
-      padding: 14px 16px;
-      font-size: 0.85rem;
-      color: #aaa;
-      line-height: 1.6;
+      display: none; background: #111118;
+      border: 1px solid #2e2e40; border-radius: 8px;
+      padding: 14px 16px; font-size: 0.85rem; color: #aaa; line-height: 1.6;
     }
     #status-box.show { display: block; }
     .status-line { margin-bottom: 4px; }
@@ -162,21 +146,20 @@
     .status-err { color: #f87171; }
     .status-wait { color: #facc15; }
 
-    /* Spinner */
     .spinner {
-      display: inline-block;
-      width: 14px; height: 14px;
-      border: 2px solid #444;
-      border-top-color: #5b5bef;
-      border-radius: 50%;
-      animation: spin 0.7s linear infinite;
-      vertical-align: middle;
-      margin-right: 6px;
+      display: inline-block; width: 14px; height: 14px;
+      border: 2px solid #444; border-top-color: #5b5bef;
+      border-radius: 50%; animation: spin 0.7s linear infinite;
+      vertical-align: middle; margin-right: 6px;
     }
     @keyframes spin { to { transform: rotate(360deg); } }
 
     .row { display: flex; gap: 12px; }
     .row > * { flex: 1; }
+
+    /* Model params sections */
+    .model-params { display: none; }
+    .model-params.active { display: block; }
   </style>
 </head>
 <body>
@@ -193,15 +176,15 @@
           <input type="password" id="or-key" value="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" />
         </div>
         <div>
-          <label>Kling AI API Key</label>
-          <input type="password" id="kling-key" value="974766152b47124eccb7b1ef6407a0e9" />
+          <label>kie.ai API Key</label>
+          <input type="password" id="kie-key" value="974766152b47124eccb7b1ef6407a0e9" />
         </div>
       </div>
     </div>
 
     <!-- LLM Settings -->
     <div class="card">
-      <h2>LLM 設定</h2>
+      <h2>LLM 設定（圖片分析）</h2>
       <label>選擇模型</label>
       <select id="model-select">
         <option value="google/gemini-2.0-flash-exp:free">Gemini 2.0 Flash (Free)</option>
@@ -213,7 +196,6 @@
         <option value="anthropic/claude-3-haiku">Claude 3 Haiku</option>
         <option value="meta-llama/llama-3.2-90b-vision-instruct">Llama 3.2 90B Vision</option>
       </select>
-
       <label>System Prompt</label>
       <textarea id="system-prompt" rows="4">分析這張電商產品圖，產生一段適合短影片的腳本描述</textarea>
     </div>
@@ -225,7 +207,7 @@
         <input type="file" id="file-input" accept="image/*" />
         <div class="icon">🖼️</div>
         <p>拖曳圖片到這裡，或點擊選擇檔案</p>
-        <p style="font-size:0.75rem; margin-top:6px; color:#555;">支援 JPG、PNG、WEBP</p>
+        <p style="font-size:0.75rem; margin-top:6px; color:#555;">支援 JPG、PNG、WEBP（最大 10MB）</p>
       </div>
       <div id="preview-wrap">
         <img id="preview-img" src="" alt="預覽" />
@@ -244,48 +226,111 @@
       <div id="prompt-result" class="empty" contenteditable="true">尚未產生 Prompt</div>
     </div>
 
-    <!-- Kling Model Settings -->
+    <!-- Video Model Settings -->
     <div class="card">
-      <h2>影片生成設定</h2>
-      <div class="row">
-        <div>
-          <label>Kling AI 模型</label>
-          <select id="kling-model">
-            <option value="kling-v2-master">Kling v2 Master（最高品質）</option>
-            <option value="kling-v1-6">Kling v1.6</option>
-            <option value="kling-v1-5">Kling v1.5</option>
-            <option value="kling-v1" selected>Kling v1（標準）</option>
-          </select>
-        </div>
-        <div>
-          <label>影片長度</label>
-          <select id="kling-duration">
-            <option value="5" selected>5 秒</option>
-            <option value="10">10 秒</option>
-          </select>
+      <h2>影片生成設定（kie.ai）</h2>
+
+      <label>選擇影片模型</label>
+      <select id="video-model" onchange="onModelChange()">
+        <optgroup label="─ Sora 2">
+          <option value="sora-2-image-to-video" data-price="~$1/支">Sora 2 標準  ·  ~$1 / 10秒</option>
+          <option value="sora-2-pro-image-to-video-720" data-price="~$3/支" selected>Sora 2 Pro 720p  ·  ~$3 / 10秒</option>
+          <option value="sora-2-pro-image-to-video-1080" data-price="~$5/支">Sora 2 Pro 1080p  ·  ~$5 / 10秒</option>
+        </optgroup>
+        <optgroup label="─ Google Veo">
+          <option value="veo-3-1-fast" data-price="$0.40/支">Veo 3.1 Fast  ·  $0.40 / 支</option>
+          <option value="veo-3-1-quality" data-price="$2.00/支">Veo 3.1 Quality  ·  $2.00 / 支</option>
+        </optgroup>
+        <optgroup label="─ Kling">
+          <option value="kling/v2-1-pro" data-price="查官網">Kling v2.1 Pro</option>
+        </optgroup>
+        <optgroup label="─ Hailuo">
+          <option value="hailuo/2-3-image-to-video-pro" data-price="查官網">Hailuo 2.3 Pro</option>
+        </optgroup>
+        <optgroup label="─ Wan">
+          <option value="wan/2-6-image-to-video" data-price="查官網">Wan 2.6</option>
+        </optgroup>
+      </select>
+
+      <!-- Sora params -->
+      <div id="params-sora" class="model-params active">
+        <div class="row">
+          <div>
+            <label>影片長度</label>
+            <select id="sora-frames">
+              <option value="10" selected>10 秒</option>
+              <option value="15">15 秒（Pro 限定）</option>
+            </select>
+          </div>
+          <div>
+            <label>畫面方向</label>
+            <select id="sora-aspect">
+              <option value="landscape" selected>橫向 Landscape</option>
+              <option value="portrait">直向 Portrait</option>
+            </select>
+          </div>
         </div>
       </div>
-      <div class="row" style="margin-top:0">
-        <div>
-          <label>生成模式</label>
-          <select id="kling-mode">
-            <option value="std" selected>標準（std）</option>
-            <option value="pro">高品質（pro）</option>
-          </select>
-        </div>
-        <div>
-          <label>創意度（CFG Scale）</label>
-          <input type="range" id="kling-cfg" min="0" max="1" step="0.1" value="0.5"
-            oninput="document.getElementById('cfg-val').textContent=this.value"
-            style="margin-top:8px; width:100%; accent-color:#5b5bef" />
-          <span style="font-size:0.8rem; color:#888">值：<span id="cfg-val">0.5</span></span>
+
+      <!-- Kling params -->
+      <div id="params-kling" class="model-params">
+        <div class="row">
+          <div>
+            <label>影片長度</label>
+            <select id="kling-duration">
+              <option value="5" selected>5 秒</option>
+              <option value="10">10 秒</option>
+            </select>
+          </div>
         </div>
       </div>
+
+      <!-- Hailuo params -->
+      <div id="params-hailuo" class="model-params">
+        <div class="row">
+          <div>
+            <label>影片長度</label>
+            <select id="hailuo-duration">
+              <option value="6" selected>6 秒</option>
+              <option value="10">10 秒</option>
+            </select>
+          </div>
+          <div>
+            <label>解析度</label>
+            <select id="hailuo-res">
+              <option value="768p" selected>768p</option>
+              <option value="1080p">1080p（僅 6 秒）</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Wan params -->
+      <div id="params-wan" class="model-params">
+        <div class="row">
+          <div>
+            <label>影片長度</label>
+            <select id="wan-duration">
+              <option value="5" selected>5 秒</option>
+              <option value="10">10 秒</option>
+              <option value="15">15 秒</option>
+            </select>
+          </div>
+          <div>
+            <label>解析度</label>
+            <select id="wan-res">
+              <option value="720p" selected>720p</option>
+              <option value="1080p">1080p</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <!-- Generate Video -->
     <button class="btn btn-generate" id="btn-generate" onclick="generateVideo()" disabled>
-      送出 Kling AI，生成影片
+      送出 kie.ai，生成影片
     </button>
 
     <!-- Status -->
@@ -296,6 +341,23 @@
   <script>
     let imageBase64 = null;
     let imageMime = 'image/jpeg';
+    let imageFileName = 'image.jpg';
+
+    // --- Model change handler ---
+    function onModelChange() {
+      const val = document.getElementById('video-model').value;
+      document.querySelectorAll('.model-params').forEach(el => el.classList.remove('active'));
+
+      if (val.startsWith('sora-2')) {
+        document.getElementById('params-sora').classList.add('active');
+      } else if (val.startsWith('kling')) {
+        document.getElementById('params-kling').classList.add('active');
+      } else if (val.startsWith('hailuo')) {
+        document.getElementById('params-hailuo').classList.add('active');
+      } else if (val.startsWith('wan')) {
+        document.getElementById('params-wan').classList.add('active');
+      }
+    }
 
     // --- Drag & Drop ---
     const dropZone = document.getElementById('drop-zone');
@@ -315,6 +377,7 @@
 
     function loadImage(file) {
       imageMime = file.type || 'image/jpeg';
+      imageFileName = file.name || 'image.jpg';
       const reader = new FileReader();
       reader.onload = e => {
         const dataUrl = e.target.result;
@@ -334,16 +397,12 @@
       fileInput.value = '';
       document.getElementById('btn-analyze').disabled = true;
       document.getElementById('btn-generate').disabled = true;
-      setPromptEmpty();
-    }
-
-    function setPromptEmpty() {
       const el = document.getElementById('prompt-result');
       el.textContent = '尚未產生 Prompt';
       el.classList.add('empty');
     }
 
-    // --- Analyze Image ---
+    // --- Analyze Image (OpenRouter) ---
     async function analyzeImage() {
       const apiKey = document.getElementById('or-key').value.trim();
       const model = document.getElementById('model-select').value;
@@ -363,7 +422,7 @@
           headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://github.com/Rf144/-',
+            'HTTP-Referer': 'https://frabjous-peony-72f93f.netlify.app',
             'X-Title': '圖生影片工具'
           },
           body: JSON.stringify({
@@ -400,84 +459,194 @@
       }
     }
 
+    // --- Upload image to kie.ai ---
+    async function uploadImageToKie(apiKey) {
+      showStatus('⬆️ 上傳圖片到 kie.ai...', 'wait');
+      const res = await fetch('https://api.kie.ai/api/file-base64-upload', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          base64Data: `data:${imageMime};base64,${imageBase64}`,
+          uploadPath: 'ugc-tool',
+          fileName: imageFileName
+        })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.data?.downloadUrl) {
+        throw new Error('圖片上傳失敗：' + (data.msg || JSON.stringify(data)));
+      }
+      return data.data.downloadUrl;
+    }
+
+    // --- Build request body by model ---
+    function buildTaskBody(model, imageUrl, prompt) {
+      if (model === 'sora-2-image-to-video') {
+        return {
+          model: 'sora-2-image-to-video',
+          input: {
+            prompt,
+            image_urls: [imageUrl],
+            upload_method: 's3',
+            aspect_ratio: document.getElementById('sora-aspect').value,
+            n_frames: document.getElementById('sora-frames').value
+          }
+        };
+      }
+      if (model === 'sora-2-pro-image-to-video-720') {
+        return {
+          model: 'sora-2-pro-image-to-video',
+          input: {
+            prompt,
+            image_urls: [imageUrl],
+            upload_method: 's3',
+            aspect_ratio: document.getElementById('sora-aspect').value,
+            n_frames: document.getElementById('sora-frames').value,
+            size: 'standard'
+          }
+        };
+      }
+      if (model === 'sora-2-pro-image-to-video-1080') {
+        return {
+          model: 'sora-2-pro-image-to-video',
+          input: {
+            prompt,
+            image_urls: [imageUrl],
+            upload_method: 's3',
+            aspect_ratio: document.getElementById('sora-aspect').value,
+            n_frames: document.getElementById('sora-frames').value,
+            size: 'high'
+          }
+        };
+      }
+      if (model.startsWith('kling')) {
+        return {
+          model,
+          input: {
+            prompt,
+            image_url: imageUrl,
+            duration: parseInt(document.getElementById('kling-duration').value)
+          }
+        };
+      }
+      if (model.startsWith('hailuo')) {
+        return {
+          model,
+          input: {
+            prompt,
+            image_url: imageUrl,
+            duration: parseInt(document.getElementById('hailuo-duration').value),
+            resolution: document.getElementById('hailuo-res').value
+          }
+        };
+      }
+      if (model.startsWith('wan')) {
+        return {
+          model,
+          input: {
+            prompt,
+            image_url: imageUrl,
+            duration: parseInt(document.getElementById('wan-duration').value),
+            resolution: document.getElementById('wan-res').value
+          }
+        };
+      }
+      // veo and others — generic
+      return {
+        model,
+        input: { prompt, image_url: imageUrl }
+      };
+    }
+
     // --- Generate Video ---
     async function generateVideo() {
-      const apiKey = document.getElementById('kling-key').value.trim();
+      const apiKey = document.getElementById('kie-key').value.trim();
       const prompt = document.getElementById('prompt-result').textContent.trim();
+      const model = document.getElementById('video-model').value;
 
-      if (!apiKey) return showStatus('請填入 Kling AI API Key', 'err');
+      if (!apiKey) return showStatus('請填入 kie.ai API Key', 'err');
       if (!imageBase64) return showStatus('請先上傳圖片', 'err');
       if (!prompt || prompt === '尚未產生 Prompt') return showStatus('請先產生 Prompt', 'err');
 
       const btn = document.getElementById('btn-generate');
       btn.disabled = true;
-      btn.innerHTML = '<span class="spinner"></span>送出中...';
-      showStatus('正在送出 Kling AI 影片生成請求...', 'wait');
+      btn.innerHTML = '<span class="spinner"></span>處理中...';
 
       try {
-        const res = await fetch('https://api.klingai.com/v1/videos/image2video', {
+        // Step 1: upload image
+        const imageUrl = await uploadImageToKie(apiKey);
+        showStatus(`✅ 圖片上傳成功\n📤 送出影片生成請求...`, 'wait');
+
+        // Step 2: create task
+        const body = buildTaskBody(model, imageUrl, prompt);
+        const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            model_name: document.getElementById('kling-model').value,
-            image: `data:${imageMime};base64,${imageBase64}`,
-            prompt,
-            duration: document.getElementById('kling-duration').value,
-            mode: document.getElementById('kling-mode').value,
-            cfg_scale: parseFloat(document.getElementById('kling-cfg').value)
-          })
+          body: JSON.stringify(body)
         });
 
         const data = await res.json();
-        if (!res.ok) throw new Error(data.message || `HTTP ${res.status}`);
+        if (!res.ok) throw new Error(data.msg || `HTTP ${res.status}`);
 
-        const taskId = data.data?.task_id;
-        if (!taskId) throw new Error('未取得 task_id：' + JSON.stringify(data));
+        const taskId = data.data?.taskId;
+        if (!taskId) throw new Error('未取得 taskId：' + JSON.stringify(data));
 
-        showStatus(`任務建立成功，task_id: ${taskId}\n⏳ 等待影片生成（約 2-5 分鐘）...`, 'wait');
+        showStatus(`✅ 任務建立成功\ntask_id: ${taskId}\n⏳ 等待影片生成（約 2-5 分鐘）...`, 'wait');
         btn.innerHTML = '<span class="spinner"></span>生成中，請等待...';
 
+        // Step 3: poll
         await pollVideo(apiKey, taskId);
+
       } catch (err) {
-        showStatus(`❌ 送出失敗：${err.message}`, 'err');
+        showStatus(`❌ 失敗：${err.message}`, 'err');
         btn.disabled = false;
-        btn.textContent = '送出 Kling AI，生成影片';
+        btn.textContent = '送出 kie.ai，生成影片';
       }
     }
 
+    // --- Poll ---
     async function pollVideo(apiKey, taskId) {
-      const maxTries = 60;
-      const interval = 5000;
-
+      const maxTries = 72; // 6 min
       for (let i = 0; i < maxTries; i++) {
-        await sleep(interval);
+        await sleep(5000);
 
-        const res = await fetch(`https://api.klingai.com/v1/videos/image2video/${taskId}`, {
+        const res = await fetch(`https://api.kie.ai/api/v1/jobs/getTask?taskId=${taskId}`, {
           headers: { 'Authorization': `Bearer ${apiKey}` }
         });
         const data = await res.json();
-        const status = data.data?.task_status;
+        const status = data.data?.status;
+        const progress = data.data?.progress ?? '';
 
-        showStatus(`task_id: ${taskId}\n狀態：${status}（第 ${i+1} 次查詢）`, 'wait');
+        showStatus(
+          `task_id: ${taskId}\n` +
+          `狀態：${status}${progress ? '  進度：' + progress + '%' : ''}（第 ${i+1} 次查詢）`,
+          'wait'
+        );
 
-        if (status === 'succeed') {
-          const videoUrl = data.data?.task_result?.videos?.[0]?.url;
-          if (!videoUrl) throw new Error('找不到影片網址');
+        if (status === 'completed' || status === 'succeed' || status === 'success') {
+          const videoUrl =
+            data.data?.output?.video_url ||
+            data.data?.output?.url ||
+            data.data?.videoUrl ||
+            data.data?.result?.video_url;
+          if (!videoUrl) throw new Error('生成完成但找不到影片網址，回傳：' + JSON.stringify(data.data));
           showStatus(`✅ 影片生成成功！正在下載...`, 'ok');
-          downloadVideo(videoUrl, `kling_${taskId}.mp4`);
+          downloadVideo(videoUrl, `kie_${taskId}.mp4`);
           document.getElementById('btn-generate').disabled = false;
-          document.getElementById('btn-generate').textContent = '送出 Kling AI，生成影片';
+          document.getElementById('btn-generate').textContent = '送出 kie.ai，生成影片';
           return;
         }
 
-        if (status === 'failed') {
-          throw new Error('Kling AI 生成失敗：' + JSON.stringify(data.data));
+        if (status === 'failed' || status === 'error') {
+          throw new Error('生成失敗：' + JSON.stringify(data.data));
         }
       }
-      throw new Error('等待超時，請稍後手動查詢');
+      throw new Error('等待超時（6 分鐘），請至 kie.ai 後台查詢');
     }
 
     function downloadVideo(url, filename) {
