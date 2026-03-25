@@ -401,9 +401,10 @@
 
     function renderTasks() {
       const list = document.getElementById('task-list');
-      const empty = document.getElementById('empty-hint');
-      if (tasks.length === 0) { list.innerHTML = ''; list.appendChild(empty); return; }
-      if (empty.parentNode) empty.parentNode.removeChild(empty);
+      if (tasks.length === 0) {
+        list.innerHTML = '<div class="empty-tasks" id="empty-hint">尚無任務<br><span style="font-size:0.8rem;color:#333">送出影片後會在這裡顯示</span></div>';
+        return;
+      }
 
       list.innerHTML = tasks.map((t, idx) => {
         const badgeClass = { uploading: 'badge-wait', wait: 'badge-wait', queuing: 'badge-running', generating: 'badge-running', success: 'badge-success', fail: 'badge-fail' }[t.state] || 'badge-wait';
