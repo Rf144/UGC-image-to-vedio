@@ -638,25 +638,25 @@
       for (let i = 0; i < maxTries; i++) {
         await sleep(5000);
 
-        const res = await fetch(`https://api.kie.ai/api/v1/jobs/getTask?taskId=${taskId}`, {
+        const res = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
           headers: { 'Authorization': `Bearer ${apiKey}` }
         });
         const data = await res.json();
-        const status = data.data?.status;
+        const state = data.data?.state;
         const progress = data.data?.progress ?? '';
 
         showStatus(
           `task_id: ${taskId}\n` +
-          `狀態：${status}${progress ? '  進度：' + progress + '%' : ''}（第 ${i+1} 次查詢）`,
+          `狀態：${state ?? '等待中'}${progress ? '  進度：' + progress + '%' : ''}（第 ${i+1} 次查詢）`,
           'wait'
         );
 
-        if (status === 'completed' || status === 'succeed' || status === 'success') {
-          const videoUrl =
-            data.data?.output?.video_url ||
-            data.data?.output?.url ||
-            data.data?.videoUrl ||
-            data.data?.result?.video_url;
+        if (state === 'success') {
+          let videoUrl = null;
+          try {
+            const result = JSON.parse(data.data.resultJson);
+            videoUrl = result.resultUrls?.[0] || result.videoUrl || result.url;
+          } catch(e) {}
           if (!videoUrl) throw new Error('生成完成但找不到影片網址，回傳：' + JSON.stringify(data.data));
           showStatus(`✅ 影片生成成功！正在下載...`, 'ok');
           downloadVideo(videoUrl, `kie_${taskId}.mp4`);
@@ -665,8 +665,8 @@
           return;
         }
 
-        if (status === 'failed' || status === 'error') {
-          throw new Error('生成失敗：' + JSON.stringify(data.data));
+        if (state === 'fail') {
+          throw new Error(`生成失敗：${data.data?.failMsg || data.data?.failCode || JSON.stringify(data.data)}`);
         }
       }
       throw new Error('等待超時（6 分鐘），請至 kie.ai 後台查詢');
