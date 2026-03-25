@@ -539,7 +539,7 @@ SORA PROMPT (paste directly into Sora):
             <span class="badge ${badgeClass}">${badgeLabel}</span>
             ${timerHtml}
             ${(t.state === 'generating' || t.state === 'queuing') && t.progress > 0 ? `<div class="progress-bar"><div class="progress-fill" style="width:${t.progress}%"></div></div>` : ''}
-            ${t.state === 'success' && t.videoUrl ? `<button class="btn-dl" onclick="downloadVideo('${t.id}')">下載影片</button>` : ''}
+            ${t.state === 'success' && t.videoUrl ? `<button class="btn-dl" data-dl="${t.id}" onclick="downloadVideo('${t.id}')">下載影片</button>` : ''}
             ${retryHtml}
           </div>
         </div>`;
@@ -554,13 +554,30 @@ SORA PROMPT (paste directly into Sora):
       saveTasks();
     }
 
-    function downloadVideo(taskId) {
+    async function downloadVideo(taskId) {
       const t = tasks.find(t => t.id === taskId);
       if (!t || !t.videoUrl) return;
       const filename = (t.keywords || extractKeywordsLocal(t.prompt)) + '.mp4';
-      const a = document.createElement('a');
-      a.href = t.videoUrl; a.download = filename; a.target = '_blank';
-      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+
+      const btn = document.querySelector(`.btn-dl[data-dl="${taskId}"]`);
+      if (btn) { btn.textContent = '下載中...'; btn.disabled = true; }
+
+      try {
+        const res = await fetch(t.videoUrl);
+        if (!res.ok) throw new Error('fetch failed');
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl; a.download = filename;
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
+      } catch(e) {
+        // CORS 限制時備援：開新分頁 + 提示手動存檔
+        window.open(t.videoUrl, '_blank');
+        alert('請在新分頁按右鍵「另存影片」，並手動命名為：\n' + filename);
+      } finally {
+        if (btn) { btn.textContent = '下載影片'; btn.disabled = false; }
+      }
     }
 
     async function retryTask(taskId) {
