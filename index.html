@@ -249,6 +249,14 @@
       document.getElementById('btn-generate').disabled = !(imageBase64 && p && p !== '尚未產生 Prompt');
     }
 
+    // ── 任務持久化 ──
+    function saveTasks() {
+      const toSave = tasks.map(t =>
+        t.state === 'uploading' ? { ...t, state: 'fail', error: '上傳中斷（頁面重整）' } : t
+      );
+      localStorage.setItem('ugc-tasks', JSON.stringify(toSave));
+    }
+
     // localStorage keys
     const orKeyEl = document.getElementById('or-key');
     const kieKeyEl = document.getElementById('kie-key');
@@ -257,6 +265,26 @@
     orKeyEl.addEventListener('input', () => localStorage.setItem('or-key', orKeyEl.value));
     kieKeyEl.addEventListener('input', () => localStorage.setItem('kie-key', kieKeyEl.value));
     document.getElementById('prompt-result').addEventListener('input', updateGenerateBtn);
+
+    // ── 頁面載入時還原任務 ──
+    (function restoreTasks() {
+      const saved = localStorage.getItem('ugc-tasks');
+      if (!saved) return;
+      try {
+        const loaded = JSON.parse(saved);
+        if (!Array.isArray(loaded) || loaded.length === 0) return;
+        tasks.push(...loaded);
+        renderTasks();
+        const apiKey = kieKeyEl.value.trim();
+        if (apiKey) {
+          loaded.forEach(t => {
+            if (['wait', 'queuing', 'generating'].includes(t.state)) {
+              pollTask(t.id, apiKey); // 恢復輪詢未完成的任務
+            }
+          });
+        }
+      } catch(e) {}
+    })();
 
     // Model params toggle
     function onModelChange() {
@@ -320,7 +348,7 @@
           headers: {
             'Authorization': `Bearer ${apiKey}`,
             'Content-Type': 'application/json',
-            'HTTP-Referer': 'https://frabjous-peony-72f93f.netlify.app',
+            'HTTP-Referer': location.origin,
             'X-Title': 'UGC Video Tool'
           },
           body: JSON.stringify({
@@ -348,6 +376,33 @@
         btn.disabled = false;
         btn.textContent = '分析圖片，產生 Prompt';
       }
+    }
+
+    // ── 從 Prompt 提取產品關鍵字（作為檔名）──
+    async function generateKeywords(prompt, apiKey) {
+      try {
+        const model = document.getElementById('model-select').value;
+        const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${apiKey}`,
+            'Content-Type': 'application/json',
+            'HTTP-Referer': location.origin,
+            'X-Title': 'UGC Video Tool'
+          },
+          body: JSON.stringify({
+            model,
+            messages: [{ role: 'user', content: `根據以下影片腳本，提取電商產品關鍵字作為檔名。只輸出20-30個中文關鍵字，連續排列不含空格標點換行，直接輸出字串不要說明。\n\n${prompt}` }]
+          })
+        });
+        const data = await res.json();
+        const raw = data.choices?.[0]?.message?.content?.trim() || '';
+        return raw.replace(/[^\u4e00-\u9fff\u3400-\u4dbf]/g, '').slice(0, 30) || '';
+      } catch(e) { return ''; }
+    }
+
+    function extractKeywordsLocal(prompt) {
+      return prompt.replace(/[^\u4e00-\u9fff\u3400-\u4dbf]/g, '').slice(0, 25) || 'kie_video';
     }
 
     // Build task body
@@ -397,6 +452,7 @@
       if (!t) return;
       Object.assign(t, patch);
       renderTasks();
+      saveTasks();
     }
 
     function renderTasks() {
@@ -422,7 +478,7 @@
           <div class="task-actions">
             <span class="badge ${badgeClass}">${badgeLabel}</span>
             ${(t.state === 'generating' || t.state === 'queuing') && t.progress > 0 ? `<div class="progress-bar"><div class="progress-fill" style="width:${t.progress}%"></div></div>` : ''}
-            ${t.state === 'success' && t.videoUrl ? `<button class="btn-dl" onclick="downloadVideo('${t.videoUrl}','kie_${t.id}.mp4')">下載影片</button>` : ''}
+            ${t.state === 'success' && t.videoUrl ? `<button class="btn-dl" onclick="downloadVideo('${t.id}')">下載影片</button>` : ''}
           </div>
         </div>`;
       }).reverse().join('');
@@ -433,11 +489,15 @@
         if (tasks[i].state === 'success' || tasks[i].state === 'fail') tasks.splice(i, 1);
       }
       renderTasks();
+      saveTasks();
     }
 
-    function downloadVideo(url, filename) {
+    function downloadVideo(taskId) {
+      const t = tasks.find(t => t.id === taskId);
+      if (!t || !t.videoUrl) return;
+      const filename = (t.keywords || extractKeywordsLocal(t.prompt)) + '.mp4';
       const a = document.createElement('a');
-      a.href = url; a.download = filename; a.target = '_blank';
+      a.href = t.videoUrl; a.download = filename; a.target = '_blank';
       document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
@@ -458,10 +518,19 @@
       if (!savedBase64) return alert('請先上傳圖片');
       if (!prompt || prompt === '尚未產生 Prompt') return alert('請先產生 Prompt');
 
-      const taskObj = { id: 'pending_' + Date.now(), thumb: savedThumb, model, prompt, state: 'uploading', progress: 0, videoUrl: null, error: null };
+      const taskObj = { id: 'pending_' + Date.now(), thumb: savedThumb, model, prompt, state: 'uploading', progress: 0, videoUrl: null, error: null, keywords: null };
       tasks.push(taskObj);
       renderTasks();
-      clearImage(); // 清空表單讓用戶可以馬上上傳下一張
+      saveTasks();
+      clearImage();
+
+      // 背景生成關鍵字檔名（不阻塞上傳流程）
+      const orKey = orKeyEl.value.trim();
+      if (orKey) {
+        generateKeywords(prompt, orKey).then(kw => {
+          if (kw) updateTask(taskObj.id, { keywords: kw });
+        });
+      }
 
       try {
         const upRes = await fetch('https://kieai.redpandaai.co/api/file-base64-upload', {
