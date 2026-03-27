@@ -393,7 +393,7 @@ function uid() {
 // ── DB helpers ──────────────────────────────────────────────
 async function dbLoad() {
   showLoading(true);
-  const { data, error } = await db.from('orders').select('*').order('date', { ascending: false });
+  const { data, error } = await db.from('orders').select('*').order('date', { ascending: false }).limit(10000);
   showLoading(false);
   if (error) { alert('載入失敗：' + error.message); return; }
   orders = (data || []).map(o => ({
