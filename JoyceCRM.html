@@ -318,7 +318,7 @@ tbody tr:hover td { background: #FAFAFF; }
       </div>
       <div class="form-group">
         <label class="form-label">客戶名稱 *</label>
-        <input type="text" class="form-input" id="f-customer" list="cust-datalist" placeholder="輸入或選擇客戶">
+        <input type="text" class="form-input" id="m-customer" list="cust-datalist" placeholder="輸入或選擇客戶">
         <datalist id="cust-datalist"></datalist>
       </div>
       <div class="form-group">
@@ -723,7 +723,7 @@ function openModal(id) {
     const o = orders.find(x => x.id === id);
     if (!o) return;
     document.getElementById('f-date').value = o.date || '';
-    document.getElementById('f-customer').value = o.customer || '';
+    document.getElementById('m-customer').value = o.customer || '';
     document.getElementById('f-product').value = o.product || '';
     document.getElementById('f-qty').value = o.qty || 1;
     document.getElementById('f-price').value = o.price || '';
@@ -734,7 +734,7 @@ function openModal(id) {
     document.getElementById('f-paid').checked = !!o.paid;
   } else {
     document.getElementById('f-date').value = new Date().toISOString().split('T')[0];
-    document.getElementById('f-customer').value = '';
+    document.getElementById('m-customer').value = '';
     document.getElementById('f-product').value = '';
     document.getElementById('f-qty').value = 1;
     document.getElementById('f-price').value = '';
@@ -774,7 +774,7 @@ function calcProfit() {
 
 async function saveOrder() {
   const date = document.getElementById('f-date').value;
-  const customer = document.getElementById('f-customer').value.trim();
+  const customer = document.getElementById('m-customer').value.trim();
   const product = document.getElementById('f-product').value.trim();
   const qty = parseInt(document.getElementById('f-qty').value) || 1;
   const price = parseFloat(document.getElementById('f-price').value) || 0;
