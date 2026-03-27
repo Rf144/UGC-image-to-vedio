@@ -824,6 +824,7 @@ function parseOneCSV(text, csvYear) {
   const rows = [];
   let skipped = 0;
   let colMap = null;
+  console.log('[CSV] 總行數:', lines.length, '| 年份:', csvYear, '| 前50字:', text.slice(0,50));
 
   for (const line of lines) {
     const cols = parseCSVLine(line);
@@ -832,7 +833,8 @@ function parseOneCSV(text, csvYear) {
     // 嘗試偵測表頭
     if (!colMap) {
       const detected = detectHeaders(cols);
-      if (detected) { colMap = detected; continue; } // 跳過表頭列
+      if (detected) { colMap = detected; console.log('[CSV] 表頭偵測成功:', detected); continue; }
+      else { console.log('[CSV] 表頭偵測失敗（略過）:', cols.slice(0,5)); }
     }
 
     // 沿用偵測到的欄位，或 fallback 到固定位置
@@ -915,7 +917,7 @@ async function importCSV(input) {
   loadEl.textContent = '連接雲端資料庫...';
   input.value = '';
   showLoading(false);
-  if (totalImported === 0) { alert('沒有成功匯入任何資料，請確認CSV格式正確（UTF-8編碼）'); return; }
+  if (totalImported === 0) { alert('沒有成功匯入任何資料。\n共略過 ' + totalSkipped + ' 列（格式不符）\n\n請確認CSV格式，或按 F12→Console 查看詳細錯誤'); return; }
   await dbLoad();
   alert(`✅ 成功匯入 ${totalImported} 筆訂單！${totalSkipped > 0 ? '（略過 '+totalSkipped+' 列）' : ''}`);
 }
