@@ -844,12 +844,23 @@ function importCSV(input) {
     });
     input.value = '';
     if (imported === 0) { alert('沒有成功匯入任何資料，請確認CSV格式正確（UTF-8編碼）'); return; }
+
+    // 分批上傳，每批 500 筆
+    const BATCH = 500;
+    const loadEl = document.querySelector('#loading-overlay .loading-text');
     showLoading(true);
-    const { error } = await db.from('orders').upsert(newRows);
+    let done = 0;
+    for (let i = 0; i < newRows.length; i += BATCH) {
+      const chunk = newRows.slice(i, i + BATCH);
+      loadEl.textContent = `上傳中 ${Math.min(i + BATCH, newRows.length)} / ${newRows.length} 筆...`;
+      const { error } = await db.from('orders').upsert(chunk);
+      if (error) { showLoading(false); alert('上傳失敗（第 '+(i+1)+' 批）：' + error.message); return; }
+      done += chunk.length;
+    }
+    loadEl.textContent = '連接雲端資料庫...';
     showLoading(false);
-    if (error) { alert('上傳失敗：' + error.message); return; }
     await dbLoad();
-    alert('✅ 成功匯入 ' + imported + ' 筆訂單！' + (skipped > 0 ? '（略過 '+skipped+' 列）' : ''));
+    alert('✅ 成功匯入 ' + done + ' 筆訂單！' + (skipped > 0 ? '（略過 '+skipped+' 列）' : ''));
   };
   reader.readAsText(file, 'UTF-8');
 }
