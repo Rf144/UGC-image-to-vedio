@@ -469,7 +469,7 @@ function setDashYear(y) {
 
 function renderDashboard() {
   // Year pills
-  const allYears = [...new Set(orders.map(o => o.date ? o.date.slice(0,4) : null).filter(Boolean))].sort();
+  const allYears = [...new Set(orders.map(o => o.date ? o.date.slice(0,4) : null).filter(Boolean))].sort().reverse();
   const pillsHtml = [''].concat(allYears).map(y => {
     const label = y || '全部';
     const active = dashYear === y ? 'style="background:#7C3AED;color:white;border-color:#7C3AED;"' : 'style="background:white;color:#6B7280;border:1.5px solid #E5E7EB;"';
@@ -536,7 +536,7 @@ function renderDashboard() {
     months[key].profit += (o.price || 0) - (o.cost || 0);
     months[key].count++;
   });
-  const mKeys = Object.keys(months).sort();
+  const mKeys = Object.keys(months).sort().reverse();
   const maxP = Math.max(...mKeys.map(m => months[m].profit), 1);
   document.getElementById('monthly-stats').innerHTML = mKeys.length > 0
     ? mKeys.map(m => `
