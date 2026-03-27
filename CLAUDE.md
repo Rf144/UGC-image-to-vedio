@@ -1,9 +1,10 @@
 # 專案背景
 
-電商 UGC 影片自動化工具，單一 `index.html`，部署於 Netlify。
+電商 UGC 影片自動化工具，單一 `index.html`，部署於 Netlify 與 Vercel。
 
-- **線上網址：** https://frabjous-peony-72f93f.netlify.app
-- **GitHub：** https://github.com/Rf144/-
+- **Vercel 網址：** https://vs-code-ashen.vercel.app（主要，方案B手動部署）
+- **Netlify 網址：** https://frabjous-peony-72f93f.netlify.app（備用）
+- **GitHub：** https://github.com/Rf144/subtitle-tool-x2
 - **本地：** `http://localhost:5500`（需先執行 `npx serve -p 5500`）
 
 ## 使用者資訊
@@ -15,19 +16,21 @@
 
 ## 開發規則
 
-1. 每次修改完若需上線：`git add index.html && git commit -m "..." && git push && netlify deploy --prod --dir .`
+1. 每次修改完若需上線：先 git push，再 Vercel 部署
 2. **不可把 API Key 寫進程式碼**（GitHub 會自動偵測並撤銷）
 3. API Key 一律用 localStorage 儲存
-4. 本地測試用 `npx serve -p 5500`，不需每次部署 Netlify（免費額度有限）
+4. 本地測試用 `npx serve -p 5500`，不需每次部署
 
-## 部署指令
+## 部署指令（Git Bash）
 
 ```bash
 export PATH="/c/Users/User/AppData/Roaming/npm:/c/Program Files/nodejs:$PATH"
 cd "c:/Users/User/Desktop/VS Code"
 git add index.html && git commit -m "說明" && git push
-netlify deploy --prod --dir .
+vercel --prod
 ```
+
+> 注意：`vercel` 指令只能在 **Git Bash** 執行，PowerShell 會報錯
 
 ## 技術架構
 
