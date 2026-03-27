@@ -901,6 +901,7 @@ async function importCSV(input) {
     try { text = new TextDecoder('utf-8', {fatal: true}).decode(buf); }
     catch { text = new TextDecoder('big5').decode(buf); }
     const { rows, skipped } = parseOneCSV(text, csvYear);
+    console.log(`[CSV] ${file.name} → 解析 ${rows.length} 筆，略過 ${skipped} 筆`, rows[0] || '無資料');
     totalSkipped += skipped;
     if (rows.length === 0) continue;
 
