@@ -800,34 +800,68 @@ async function saveOrder() {
 // ============================================================
 // IMPORT CSV  (支援原始Excel格式：日期,訂購人,訂購商品,數量,款式or備註,幫格,成本,...,含貨,出貨,收款,備註)
 // ============================================================
+function detectHeaders(cols) {
+  // 回傳 colMap 或 null
+  const h = cols.map(c => c.trim());
+  if (!h.some(x => x === '日期' || x === '訂購人')) return null;
+  const find = (...keys) => { const i = h.findIndex(x => keys.some(k => x.includes(k))); return i >= 0 ? i : undefined; };
+  return {
+    date:     find('日期'),
+    customer: find('訂購人','客戶'),
+    product:  find('訂購商品','商品'),
+    qty:      find('數量'),
+    notes:    find('款式','備註'),
+    price:    find('幫格','售價'),
+    cost:     find('成本'),
+    shipping: find('含貨'),
+    shipped:  find('出貨'),
+    paid:     find('收款'),
+  };
+}
+
 function parseOneCSV(text, csvYear) {
   const lines = text.split(/\r?\n/);
   const rows = [];
   let skipped = 0;
-  lines.forEach(line => {
+  let colMap = null;
+
+  for (const line of lines) {
     const cols = parseCSVLine(line);
-    if (cols.length < 6) return;
-    const dateRaw = cols[0].trim();
-    const customer = cols[1].trim();
-    const product  = cols[2].trim();
-    if (!dateRaw || !customer || !product) return;
-    if (dateRaw === '日期' || dateRaw.includes('總計')) return;
+    if (cols.length < 4) continue;
+
+    // 嘗試偵測表頭
+    if (!colMap) {
+      const detected = detectHeaders(cols);
+      if (detected) { colMap = detected; continue; } // 跳過表頭列
+    }
+
+    // 沿用偵測到的欄位，或 fallback 到固定位置
+    const cm = colMap || { date:0, customer:1, product:2, qty:3, notes:4, price:5, cost:6, shipping:9, shipped:10, paid:11 };
+    const g = i => (i !== undefined && cols[i] !== undefined) ? cols[i].trim() : '';
+
+    const dateRaw  = g(cm.date);
+    const customer = g(cm.customer);
+    const product  = g(cm.product);
+    if (!dateRaw || !customer || !product) continue;
+    if (dateRaw === '日期' || dateRaw.includes('總計') || dateRaw.includes('幫格')) continue;
+
     let date = '';
     const m = dateRaw.match(/^(\d{1,2})\/(\d{1,2})$/);
     if (m) {
       date = csvYear + '-' + String(m[1]).padStart(2,'0') + '-' + String(m[2]).padStart(2,'0');
     } else if (dateRaw.match(/^\d{4}-\d{2}-\d{2}$/)) {
       date = dateRaw;
-    } else { skipped++; return; }
-    const qty    = parseInt(cols[3]) || 1;
-    const notes  = (cols[4] || '').trim();
-    const price  = parseFloat(cols[5]) || 0;
-    const cost   = parseFloat(cols[6]) || 0;
-    const shipping = /yes/i.test(cols[9] || '');
-    const shipped  = /yes/i.test(cols[10] || '');
-    const paid     = /yes/i.test(cols[11] || '');
+    } else { skipped++; continue; }
+
+    const qty      = parseInt(g(cm.qty)) || 1;
+    const notes    = g(cm.notes);
+    const price    = parseFloat(g(cm.price)) || 0;
+    const cost     = parseFloat(g(cm.cost)) || 0;
+    const shipping = /yes/i.test(g(cm.shipping));
+    const shipped  = /yes/i.test(g(cm.shipped));
+    const paid     = /yes/i.test(g(cm.paid));
     rows.push({ id: uid(), date, customer, product, qty, price, cost, notes, shipping, shipped, paid });
-  });
+  }
   return { rows, skipped };
 }
 
