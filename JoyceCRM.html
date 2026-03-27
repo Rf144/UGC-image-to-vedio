@@ -268,7 +268,7 @@ tbody tr:hover td { background: #FAFAFF; }
               <th>成本</th>
               <th>利潤</th>
               <th>利潤%</th>
-              <th>含貨</th>
+              <th>叫貨</th>
               <th>出貨</th>
               <th>收款</th>
               <th></th>
@@ -344,7 +344,7 @@ tbody tr:hover td { background: #FAFAFF; }
         <input type="text" class="form-input" id="f-notes" placeholder="例：折扣1000、特殊款式...">
       </div>
       <div class="checkbox-row">
-        <label class="chk"><input type="checkbox" id="f-shipping"> 含貨</label>
+        <label class="chk"><input type="checkbox" id="f-shipping"> 叫貨</label>
         <label class="chk"><input type="checkbox" id="f-shipped"> 出貨</label>
         <label class="chk"><input type="checkbox" id="f-paid"> 收款</label>
       </div>
@@ -643,7 +643,7 @@ function renderOrders() {
       <td>${o.cost ? '$'+fmt(o.cost) : '<span class="missing-tag">未填</span>'}</td>
       <td class="${profitCls}">${profit!=null ? '$'+fmt(profit) : '<span class="missing-tag">?</span>'}</td>
       <td class="${profitCls}">${pct!=null ? pct+'%' : '—'}</td>
-      <td><button class="s-btn ${o.shipping?'on':'off'}" onclick="toggle('${o.id}','shipping')">含貨</button></td>
+      <td><button class="s-btn ${o.shipping?'on':'off'}" onclick="toggle('${o.id}','shipping')">叫貨</button></td>
       <td><button class="s-btn ${o.shipped?'on':'off'}" onclick="toggle('${o.id}','shipped')">出貨</button></td>
       <td><button class="s-btn ${o.paid?'on':'off'}" onclick="toggle('${o.id}','paid')">收款</button></td>
       <td style="white-space:nowrap;">
@@ -810,7 +810,7 @@ async function saveOrder() {
 }
 
 // ============================================================
-// IMPORT CSV  (支援原始Excel格式：日期,訂購人,訂購商品,數量,款式or備註,幫格,成本,...,含貨,出貨,收款,備註)
+// IMPORT CSV  (支援原始Excel格式：日期,訂購人,訂購商品,數量,款式or備註,幫格,成本,...,叫貨,出貨,收款,備註)
 // ============================================================
 function detectHeaders(cols) {
   // 回傳 colMap 或 null
@@ -825,7 +825,7 @@ function detectHeaders(cols) {
     notes:    find('款式','備註'),
     price:    find('幫格','售價','價格'),
     cost:     find('成本'),
-    shipping: find('含貨','叫貨'),
+    shipping: find('叫貨','叫貨'),
     shipped:  find('出貨'),
     paid:     find('收款'),
   };
@@ -953,7 +953,7 @@ function parseCSVLine(line) {
 // ============================================================
 function exportCSV() {
   if (orders.length === 0) { alert('沒有資料可匯出'); return; }
-  const headers = ['日期','客戶','商品','數量','售價（幫格）','成本','利潤','利潤%','含貨','出貨','收款','備註'];
+  const headers = ['日期','客戶','商品','數量','售價（幫格）','成本','利潤','利潤%','叫貨','出貨','收款','備註'];
   const rows = orders.slice().sort((a,b)=>(a.date||'').localeCompare(b.date||'')).map(o => {
     const profit = (o.price||0) - (o.cost||0);
     const pct = o.cost > 0 ? (profit/o.cost*100).toFixed(1)+'%' : '';
