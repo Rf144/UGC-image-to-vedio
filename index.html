@@ -101,6 +101,8 @@
     .btn-clear-done:hover { color: #888; }
 
     .note { font-size: 0.72rem; color: #555; margin-top: 6px; }
+    .btn-del-task { background: none; border: none; color: #444; font-size: 1rem; cursor: pointer; line-height: 1; padding: 2px 4px; border-radius: 4px; }
+    .btn-del-task:hover { color: #f87171; background: #2a0d0d; }
   </style>
 </head>
 <body>
@@ -210,8 +212,8 @@ SORA PROMPT (paste directly into Sora):
             <option value="sora-2-pro-image-to-video-1080">Sora 2 Pro 1080p  ·  ~$5 / 10秒</option>
           </optgroup>
           <optgroup label="─ Google Veo">
-            <option value="veo-3-1-fast">Veo 3.1 Fast  ·  $0.40 / 支</option>
-            <option value="veo-3-1-quality">Veo 3.1 Quality  ·  $2.00 / 支</option>
+            <option value="veo3.1-fast">Veo 3.1 Fast  ·  $0.40 / 支</option>
+            <option value="veo3.1-quality">Veo 3.1 Quality  ·  $2.00 / 支</option>
           </optgroup>
           <optgroup label="─ Kling">
             <option value="kling/v2-1-pro">Kling v2.1 Pro</option>
@@ -221,6 +223,15 @@ SORA PROMPT (paste directly into Sora):
           </optgroup>
           <optgroup label="─ Wan">
             <option value="wan/2-6-image-to-video">Wan 2.6</option>
+          </optgroup>
+          <optgroup label="─ Runway">
+            <option value="runway-i2v">Runway 720p  ·  $0.15 / 10秒</option>
+          </optgroup>
+          <optgroup label="─ Veo 3">
+            <option value="veo3-lite-i2v">Veo 3.1 Lite  ·  圖生影片</option>
+          </optgroup>
+          <optgroup label="─ Grok">
+            <option value="grok-i2v">Grok  ·  $0.15 / 10秒</option>
           </optgroup>
         </select>
 
@@ -334,7 +345,7 @@ SORA PROMPT (paste directly into Sora):
         if (apiKey) {
           loaded.forEach(t => {
             if (['wait', 'waiting', 'queuing', 'generating'].includes(t.state)) {
-              pollTask(t.id, apiKey); // 恢復輪詢未完成的任務
+              pollTask(t.id, apiKey, t.model); // 恢復輪詢未完成的任務
             }
           });
         }
@@ -461,6 +472,37 @@ SORA PROMPT (paste directly into Sora):
       return prompt.replace(/[^\u4e00-\u9fff\u3400-\u4dbf]/g, '').slice(0, 25) || 'kie_video';
     }
 
+    // 從完整腳本中提取 SORA PROMPT 段落（供 Runway / Veo3 / Grok 使用）
+    function extractVideoPrompt(fullPrompt) {
+      const match = fullPrompt.match(/SORA PROMPT[^\n]*\n([\s\S]+?)(?:\n\n\n|$)/i);
+      if (match) return match[1].trim().slice(0, 800);
+      return fullPrompt.slice(0, 800);
+    }
+
+    // New model-specific API configs (Runway, Veo3, Grok)
+    function getModelApiConfig(model, imageUrl, prompt) {
+      const shortPrompt = extractVideoPrompt(prompt);
+      if (model === 'runway-i2v') return {
+        createUrl: 'https://api.kie.ai/api/v1/runway/generate',
+        body: { prompt: shortPrompt, duration: 10, quality: '720p', aspectRatio: '9:16', imageUrl }
+      };
+      if (model === 'veo3-lite-i2v') return {
+        createUrl: 'https://api.kie.ai/api/v1/veo/generate',
+        body: { prompt: shortPrompt, generationType: 'FIRST_AND_LAST_FRAMES_2_VIDEO', imageUrls: [imageUrl], model: 'veo3_lite', aspect_ratio: '9:16' }
+      };
+      if (model === 'grok-i2v') return {
+        createUrl: 'https://api.kie.ai/api/v1/jobs/createTask',
+        body: { model: 'grok-imagine/extend', input: { prompt: shortPrompt, image: imageUrl, duration: 10, aspectRatio: '9:16' } }
+      };
+      return null;
+    }
+
+    function getPollUrl(model, taskId) {
+      if (model === 'runway-i2v') return `https://api.kie.ai/api/v1/runway/record-info?taskId=${taskId}`;
+      if (model === 'veo3-lite-i2v') return `https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`;
+      return `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`;
+    }
+
     // Build task body
     function buildTaskBody(model, imageUrl, prompt) {
       const base = { upload_method: 's3', aspect_ratio: document.getElementById('sora-aspect').value, n_frames: document.getElementById('sora-frames').value };
@@ -471,31 +513,53 @@ SORA PROMPT (paste directly into Sora):
       if (model.startsWith('kling')) return { model, input: { prompt, image_url: imageUrl, duration: parseInt(document.getElementById('kling-duration').value) } };
       if (model.startsWith('hailuo')) return { model, input: { prompt, image_url: imageUrl, duration: parseInt(document.getElementById('hailuo-duration').value), resolution: document.getElementById('hailuo-res').value } };
       if (model.startsWith('wan')) return { model, input: { prompt, image_url: imageUrl, duration: parseInt(document.getElementById('wan-duration').value), resolution: document.getElementById('wan-res').value } };
+      if (model.startsWith('veo')) return { model, input: { prompt, image_url: imageUrl } };
       return { model, input: { prompt, image_url: imageUrl } };
     }
 
     // Poll individual task
-    async function pollTask(taskId, apiKey) {
+    async function pollTask(taskId, apiKey, model) {
+      model = model || '';
       const maxTries = 240; // 20 min
       for (let i = 0; i < maxTries; i++) {
         await sleep(5000);
         try {
-          const res = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`, {
+          const res = await fetch(getPollUrl(model, taskId), {
             headers: { 'Authorization': `Bearer ${apiKey}` }
           });
           const data = await res.json();
-          const state = data.data?.state;
+          const rawState = data.data?.state;
           const progress = data.data?.progress ?? 0;
-          updateTask(taskId, { state: state || 'wait', progress });
+          // 只在拿到明確 state 時才更新（避免 null 蓋掉現有狀態）
+          const d = data.data;
+          // Veo3 用 successFlag（無 state 欄位）
+          const isVeo3Success = d?.successFlag === 1;
+          const isVeo3Fail = d?.errorCode != null && d?.errorCode !== null && d?.errorMessage != null && d?.errorMessage !== null;
+          if (rawState) updateTask(taskId, { state: rawState, progress });
+          else if (isVeo3Success) updateTask(taskId, { state: 'success', progress: 100 });
 
-          if (state === 'success') {
+          const successStates = ['success', 'finished', 'complete', 'completed', 'done'];
+          if (successStates.includes(rawState) || isVeo3Success) {
             let videoUrl = null;
-            try { const r = JSON.parse(data.data.resultJson); videoUrl = r.resultUrls?.[0] || r.videoUrl; } catch(e) {}
+            // Runway: data.videoInfo.videoUrl
+            videoUrl = d?.videoInfo?.videoUrl;
+            // Veo3: data.response.* (many possible fields)
+            if (!videoUrl && d?.response && typeof d.response === 'object') {
+              const r = d.response;
+              videoUrl = r.videoUrl || r.video_url || r.url || r.outputUrl || r.output_url || r.resultUrl;
+              if (!videoUrl && Array.isArray(r.resultUrls)) videoUrl = r.resultUrls[0];
+              if (!videoUrl && Array.isArray(r.videos)) videoUrl = r.videos[0]?.url || r.videos[0];
+            }
+            // generic resultJson
+            if (!videoUrl) try { const r = JSON.parse(d.resultJson); videoUrl = r.resultUrls?.[0] || r.videoUrl || r.video_url; } catch(e) {}
+            // other flat fields
+            if (!videoUrl) videoUrl = d?.videoUrl || d?.video_url || d?.url || d?.outputUrl || d?.output_url;
+            if (!videoUrl && d?.outputs) videoUrl = Array.isArray(d.outputs) ? d.outputs[0] : d.outputs;
             updateTask(taskId, { state: 'success', videoUrl, progress: 100 });
             return;
           }
-          if (state === 'fail') {
-            updateTask(taskId, { state: 'fail', error: data.data?.failMsg || data.data?.failCode || '生成失敗' });
+          if (rawState === 'fail' || (isVeo3Fail && !isVeo3Success)) {
+            updateTask(taskId, { state: 'fail', error: d?.failMsg || d?.failCode || d?.errorMessage || '生成失敗' });
             return;
           }
         } catch(e) { /* network error, keep polling */ }
@@ -521,11 +585,13 @@ SORA PROMPT (paste directly into Sora):
       list.innerHTML = tasks.map((t, idx) => {
         const badgeClass = { uploading: 'badge-wait', wait: 'badge-wait', waiting: 'badge-wait', queuing: 'badge-running', generating: 'badge-running', success: 'badge-success', fail: 'badge-fail' }[t.state] || 'badge-wait';
         const badgeLabel = { uploading: '上傳中', wait: '等待中', waiting: '等待中', queuing: '排隊中', generating: '生成中', success: '完成', fail: '失敗' }[t.state] || t.state;
-        const modelShort = t.model.replace('sora-2-image-to-video', 'Sora2').replace('-stable', ' Stable').replace('/v2-1-pro', ' v2.1').replace('2-3-image-to-video-pro', '2.3 Pro').replace('2-6-image-to-video', '2.6');
+        const modelShort = t.model.replace('sora-2-image-to-video', 'Sora2').replace('-stable', ' Stable').replace('/v2-1-pro', ' v2.1').replace('2-3-image-to-video-pro', '2.3 Pro').replace('2-6-image-to-video', '2.6').replace('runway-i2v', 'Runway 720p').replace('veo3-lite-i2v', 'Veo3.1 Lite').replace('grok-i2v', 'Grok');
 
         const isActive = ['uploading','wait','waiting','queuing','generating'].includes(t.state);
         const timerHtml = isActive && t.startTime ? `<div class="task-timer">⏱ ${formatElapsed(t.startTime)}</div>` : '';
         const retryHtml = t.state === 'fail' && t.imageUrl ? `<button class="btn-retry" onclick="retryTask('${t.id}')">重試</button>` : '';
+        const isStuck = ['wait','waiting','queuing','queueing','generating'].includes(t.state) && !t.id.startsWith('pending_');
+        const recheckHtml = (t.state === 'success' && !t.videoUrl) || isStuck ? `<button class="btn-retry" onclick="recheckTask('${t.id}')">查詢</button>` : '';
 
         return `<div class="task-card">
           ${t.thumb ? `<img class="task-thumb" src="${t.thumb}" />` : `<div class="task-thumb-placeholder">🖼️</div>`}
@@ -541,9 +607,83 @@ SORA PROMPT (paste directly into Sora):
             ${(t.state === 'generating' || t.state === 'queuing') && t.progress > 0 ? `<div class="progress-bar"><div class="progress-fill" style="width:${t.progress}%"></div></div>` : ''}
             ${t.state === 'success' && t.videoUrl ? `<button class="btn-dl" data-dl="${t.id}" onclick="downloadVideo('${t.id}')">下載影片</button>` : ''}
             ${retryHtml}
+            ${recheckHtml}
+            <button class="btn-del-task" onclick="deleteTask('${t.id}')" title="刪除">✕</button>
           </div>
         </div>`;
       }).reverse().join('');
+    }
+
+    async function recheckTask(taskId) {
+      const t = tasks.find(t => t.id === taskId);
+      if (!t) return;
+      const apiKey = kieKeyEl.value.trim();
+      if (!apiKey) return alert('請填入 kie.ai API Key');
+
+      // 依模型嘗試不同端點
+      const endpoints = [];
+      if (t.model === 'runway-i2v') {
+        endpoints.push(
+          `https://api.kie.ai/api/v1/runway/record-info?taskId=${taskId}`,
+          `https://api.kie.ai/api/v1/runway/record-detail?taskId=${taskId}`,
+          `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`
+        );
+      } else if (t.model === 'veo3-lite-i2v') {
+        endpoints.push(
+          `https://api.kie.ai/api/v1/veo/record-info?taskId=${taskId}`,
+          `https://api.kie.ai/api/v1/veo/record-detail?taskId=${taskId}`,
+          `https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`
+        );
+      } else {
+        endpoints.push(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${taskId}`);
+      }
+
+      const results = {};
+      for (const url of endpoints) {
+        try {
+          const res = await fetch(url, { headers: { 'Authorization': `Bearer ${apiKey}` } });
+          const raw = await res.json();
+          results[url] = raw;
+          if (raw?.data) {
+            const d = raw.data;
+            if (d.state) updateTask(taskId, { state: d.state, progress: d.progress ?? 0 });
+            const isVeo3Done = d?.successFlag === 1;
+            let videoUrl = d?.videoInfo?.videoUrl;
+            if (!videoUrl && d?.response && typeof d.response === 'object') {
+              const r = d.response;
+              videoUrl = r.videoUrl || r.video_url || r.url || r.outputUrl || r.output_url || r.resultUrl;
+              if (!videoUrl && Array.isArray(r.resultUrls)) videoUrl = r.resultUrls[0];
+              if (!videoUrl && Array.isArray(r.videos)) videoUrl = r.videos[0]?.url || r.videos[0];
+            }
+            if (!videoUrl) try { const r = JSON.parse(d.resultJson); videoUrl = r.resultUrls?.[0] || r.videoUrl || r.video_url; } catch(e) {}
+            if (!videoUrl) videoUrl = d?.videoUrl || d?.video_url || d?.url || d?.outputUrl || d?.output_url;
+            if (!videoUrl && d?.outputs) videoUrl = Array.isArray(d.outputs) ? d.outputs[0] : d.outputs;
+            if (videoUrl || isVeo3Done) {
+              updateTask(taskId, { state: 'success', videoUrl: videoUrl || null, progress: 100 });
+              if (videoUrl) return;
+            }
+          }
+        } catch(e) { results[url] = e.message; }
+      }
+      // 顯示 data.response 完整內容
+      let debugMsg = '';
+      for (const [url, raw] of Object.entries(results)) {
+        if (raw?.code === 200 && raw?.data) {
+          const resp = raw.data.response;
+          debugMsg += `[${url.split('/api/v1/')[1]}]\n`;
+          debugMsg += `successFlag: ${raw.data.successFlag}\n`;
+          debugMsg += `response: ${JSON.stringify(resp)}\n`;
+        }
+      }
+      alert(debugMsg || '所有端點回應：\n' + JSON.stringify(results, null, 2));
+    }
+
+    function deleteTask(taskId) {
+      const idx = tasks.findIndex(t => t.id === taskId);
+      if (idx === -1) return;
+      tasks.splice(idx, 1);
+      renderTasks();
+      saveTasks();
     }
 
     function clearDone() {
@@ -590,18 +730,20 @@ SORA PROMPT (paste directly into Sora):
       startTimerIfNeeded();
 
       try {
-        const body = buildTaskBody(t.model, t.imageUrl, t.prompt);
-        const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+        const apiCfg = getModelApiConfig(t.model, t.imageUrl, t.prompt);
+        const createUrl = apiCfg ? apiCfg.createUrl : 'https://api.kie.ai/api/v1/jobs/createTask';
+        const createBody = apiCfg ? apiCfg.body : buildTaskBody(t.model, t.imageUrl, t.prompt);
+        const res = await fetch(createUrl, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify(createBody)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.msg || `HTTP ${res.status}`);
         const newTaskId = data.data?.taskId;
         if (!newTaskId) throw new Error('未取得 taskId：' + JSON.stringify(data));
         updateTask(taskId, { id: newTaskId, state: 'wait' });
-        pollTask(newTaskId, apiKey);
+        pollTask(newTaskId, apiKey, t.model);
       } catch (err) {
         updateTask(taskId, { state: 'fail', error: err.message });
       }
@@ -651,11 +793,13 @@ SORA PROMPT (paste directly into Sora):
         const imageUrl = upData.data.downloadUrl;
         updateTask(taskObj.id, { imageUrl }); // 儲存供重試用
 
-        const body = buildTaskBody(model, imageUrl, prompt);
-        const res = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
+        const apiCfg = getModelApiConfig(model, imageUrl, prompt);
+        const createUrl = apiCfg ? apiCfg.createUrl : 'https://api.kie.ai/api/v1/jobs/createTask';
+        const createBody = apiCfg ? apiCfg.body : buildTaskBody(model, imageUrl, prompt);
+        const res = await fetch(createUrl, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${apiKey}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify(body)
+          body: JSON.stringify(createBody)
         });
         const data = await res.json();
         if (!res.ok) throw new Error(data.msg || `HTTP ${res.status}`);
@@ -663,7 +807,7 @@ SORA PROMPT (paste directly into Sora):
         if (!taskId) throw new Error('未取得 taskId：' + JSON.stringify(data));
 
         updateTask(taskObj.id, { id: taskId, state: 'wait' });
-        pollTask(taskId, apiKey);
+        pollTask(taskId, apiKey, model);
       } catch (err) {
         updateTask(taskObj.id, { state: 'fail', error: err.message });
       }
