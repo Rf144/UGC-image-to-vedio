@@ -1,9 +1,9 @@
 # 專案背景
 
-電商 UGC 影片自動化工具，單一 `index.html`，部署於 Netlify。
+電商 UGC 影片自動化工具，單一 `index.html`，部署於 Vercel。
 
-- **線上網址：** https://frabjous-peony-72f93f.netlify.app
-- **GitHub：** https://github.com/Rf144/-
+- **Vercel 網址：** https://vs-code-ashen.vercel.app（主要）
+- **GitHub：** https://github.com/Rf144/UGC-image-to-vedio
 - **本地：** `http://localhost:5500`（需先執行 `npx serve -p 5500`）
 
 ## 使用者資訊
@@ -15,19 +15,21 @@
 
 ## 開發規則
 
-1. 每次修改完若需上線：`git add index.html && git commit -m "..." && git push && netlify deploy --prod --dir ugc-video-tool`
+1. 每次修改完若需上線：先 git push，再 Vercel 部署
 2. **不可把 API Key 寫進程式碼**（GitHub 會自動偵測並撤銷）
 3. API Key 一律用 localStorage 儲存
-4. 本地測試用 `npx serve -p 5500`，不需每次部署 Netlify（免費額度有限）
+4. 本地測試用 `npx serve -p 5500`，不需每次部署
 
-## 部署指令
+## 部署指令（Git Bash）
 
 ```bash
 export PATH="/c/Users/Lg/AppData/Roaming/npm:/c/Program Files/nodejs:$PATH"
-cd "c:/Users/Lg/OneDrive/桌面/VS Code"
-git add ugc-video-tool/index.html && git commit -m "說明" && git push
-netlify deploy --prod --dir ugc-video-tool
+cd "c:/Users/Lg/OneDrive/桌面/VS Code/ugc-video-tool"
+git add index.html CLAUDE.md && git commit -m "說明" && git push
+vercel --prod
 ```
+
+> 注意：`vercel` 指令只能在 **Git Bash** 執行，PowerShell 會報錯
 
 ## 技術架構
 
@@ -89,6 +91,5 @@ netlify deploy --prod --dir ugc-video-tool
 - kie.ai 狀態值是 `"waiting"` 不是 `"wait"`；Runway 回傳 `"queueing"`（含 ing）不是 `"queuing"`
 - kie.ai 圖片上傳域名是 `kieai.redpandaai.co`（不是 `api.kie.ai`）
 - OpenRouter `X-Title` 不可含中文
-- Netlify 免費額度 300 credits/月，每次部署約 15 credits，盡量本地測試好再部署
 - 輪詢拿到 null state 時不可用 `state || 'wait'` 蓋掉現有狀態，要先檢查 `if (state)` 才更新
 - Veo3 / Runway 任務 ID 無法用通用 `recordInfo` 查詢，必須用各自的 `record-info` 端點
