@@ -459,17 +459,17 @@ SORA PROMPT (paste directly into Sora):
           },
           body: JSON.stringify({
             model,
-            messages: [{ role: 'user', content: `根據以下影片腳本，提取電商產品關鍵字作為檔名。只輸出20-30個中文關鍵字，連續排列不含空格標點換行，直接輸出字串不要說明。\n\n${prompt}` }]
+            messages: [{ role: 'user', content: `根據以下影片腳本，只輸出產品的核心名詞（例如：鋼琴、鍵盤、耳機），2到4個中文字，不要形容詞，不要標點，直接輸出。\n\n${prompt}` }]
           })
         });
         const data = await res.json();
         const raw = data.choices?.[0]?.message?.content?.trim() || '';
-        return raw.replace(/[^\u4e00-\u9fff\u3400-\u4dbf]/g, '').slice(0, 30) || '';
+        return raw.replace(/[^\u4e00-\u9fff\u3400-\u4dbf]/g, '').slice(0, 4) || '';
       } catch(e) { return ''; }
     }
 
     function extractKeywordsLocal(prompt) {
-      return prompt.replace(/[^\u4e00-\u9fff\u3400-\u4dbf]/g, '').slice(0, 25) || 'kie_video';
+      return prompt.replace(/[^\u4e00-\u9fff\u3400-\u4dbf]/g, '').slice(0, 4) || 'video';
     }
 
     // 從完整腳本中提取 SORA PROMPT 段落（供 Runway / Veo3 / Grok 使用）
